@@ -93,13 +93,20 @@ if args.D:
 CLEAN_BUILD_DIRECTORY = args.clean
 FORCE_RERUN_CMAKE = args.cmake
 REQUESTED_GENERATOR = args.generator
-BUILD_CONFIGURATION = "RelWithDebInfo" if args.release else "Debug"
 
 PLATFORM = "native"
 if args.web: PLATFORM = "web"
 if args.ios: PLATFORM = "ios"
 if args.android: PLATFORM = "android"
 CMAKE_TOOLCHAIN = None
+
+if args.release and PLATFORM == "web":
+	# Emscripten limits WASM-level (binaryen) optimisations in RelWithDebInfo mode
+	BUILD_CONFIGURATION = "Release"
+elif args.release:
+	BUILD_CONFIGURATION = "RelWithDebInfo"
+else:
+	BUILD_CONFIGURATION = "Debug"
 
 # TODO: Supporting mobile platforms will involve lots of changes
 if args.ios:
