@@ -142,8 +142,9 @@ endif()
 set_target_properties(dear_imgui PROPERTIES CXX_STANDARD 20 CXX_EXTENSIONS ON)
 target_link_libraries(Main PRIVATE dear_imgui)
 
-add_library(loguru INTERFACE)
+add_library(loguru STATIC "external/loguru/loguru.cpp")
 target_include_directories(loguru INTERFACE "external/loguru")
+target_link_libraries(loguru PRIVATE stb)
 target_link_libraries(Main PRIVATE loguru)
 
 # **************************************************************************************************

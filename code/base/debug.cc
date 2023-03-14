@@ -1,4 +1,4 @@
-#include <loguru.cpp>
+#include "base/debug.hh"
 
 void InitDebugSystem(int argc, char* argv[]) {
 	loguru::g_preamble_header = false;
