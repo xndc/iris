@@ -16,8 +16,8 @@ static SDL_Window* window;
 static SDL_GLContext gl_context;
 
 SDLMAIN_DECLSPEC int main(int argc, char* argv[]) {
-	SDL_Init(SDL_INIT_EVERYTHING);
 	InitDebugSystem(argc, argv);
+	SDL_Init(SDL_INIT_EVERYTHING);
 
 	window = SDL_CreateWindow("Lycoris",
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
