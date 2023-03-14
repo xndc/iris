@@ -147,6 +147,10 @@ target_include_directories(loguru INTERFACE "external/loguru")
 target_link_libraries(loguru PRIVATE stb)
 target_link_libraries(Main PRIVATE loguru)
 
+add_library(sqlite STATIC "external/sqlite/sqlite3.c")
+target_include_directories(sqlite INTERFACE "external/sqlite")
+target_link_libraries(Main PRIVATE sqlite)
+
 # **************************************************************************************************
 # IDE convenience features:
 

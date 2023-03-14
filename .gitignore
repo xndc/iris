@@ -7,6 +7,7 @@
 !/external/CMakeLists.txt
 !/external/vswhere.exe
 !/external/loguru
+!/external/sqlite
 
 # Backup & temporary
 *.bak

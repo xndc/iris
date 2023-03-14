@@ -1,4 +1,5 @@
 #include <SDL.h>
+#include <sqlite3.h>
 
 #include "base/base.hh"
 #include "base/debug.hh"
@@ -30,6 +31,10 @@ SDLMAIN_DECLSPEC int main(int argc, char* argv[]) {
 	if (SDL_GL_SetSwapInterval(-1) == -1) {
 		SDL_GL_SetSwapInterval(1);
 	}
+
+	sqlite3* db;
+	CHECK_EQ_F(sqlite3_open_v2(NULL, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_MEMORY, NULL), SQLITE_OK,
+		"Failed to create test SQLite database: %s", sqlite3_errmsg(db));
 
 	#if defined(EMSCRIPTEN)
 		emscripten_set_main_loop(loop, 0, true);
