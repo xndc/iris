@@ -1,0 +1,106 @@
+# Project-specific
+/cache/*
+/*.ini
+
+# Dependencies fetched by build script
+/external/*
+!/external/CMakeLists.txt
+!/external/vswhere.exe
+!/external/loguru
+
+# Backup & temporary
+*.bak
+*.orig
+*.rej
+*.tmp
+*~
+
+# CMake
+CMakeLists.txt.user
+CMakeUserPresets.json
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Windows
+Thumbs.db
+[Dd]esktop.ini
+*.lnk
+*.stackdump
+
+# Linux
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+!.vscode/c_cpp_properties.json
+.history/
+
+# Visual Studio Code clangd plugin
+compile_commands.json
+.clangd/*
+.cache/*
+
+# Visual Studio
+.vs
+*.aps
+
+# Sublime Text
+*.sublime-workspace
+
+# JetBrains
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+.idea/**/shelf
+.idea/**/contentModel.xml
+.idea/**/dataSources/
+.idea/**/dataSources.ids
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
+.idea/**/dynamic.xml
+.idea/**/uiDesigner.xml
+.idea/**/dbnavigator.xml
+.idea/**/gradle.xml
+.idea/**/libraries
+cmake-build-*/
+*.iws
+
+# Microsoft Office and LibreOffice
+~$*.doc*
+~$*.xls*
+*.xlk
+~$*.ppt*
+*.~vsd*
+.~lock.*#

@@ -1,0 +1,40 @@
+# Don't change files unless otherwise specified:
+*               -text
+
+# Normalise text files and source code:
+*.txt           text
+*.md            text
+*.c             text
+*.cc            text
+*.cpp           text
+*.h             text
+*.hh            text
+*.hpp           text
+*.m             text
+*.mm            text
+*.inl           text
+*.rc            text
+*.rs            text
+*.json          text
+*.toml          text
+*.ini           text
+*.gltf          text
+*.glsl          text
+*.vert          text
+*.frag          text
+*.comp          text
+*.hlsl          text
+*.ps1           text eol=crlf
+*.bat           text eol=crlf
+*.sh            text eol=lf
+*.py            text eol=lf
+*.cmake         text
+*.html          text
+*.css           text
+*.js            text
+.gitattributes  text
+.gitignore      text
+.gitmodules     text
+.editorconfig   text
+.clang-format   text
+Cargo.lock      text

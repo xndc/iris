@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html><head>
+	<meta charset="utf-8"/>
+	<title>Lycoris</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+	<meta name="apple-mobile-web-app-capable" content="yes"/>
+	<meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+	<style>
+		/* border-box means padding doesn't extend the element's size, easier to work with */
+		html { margin: 0; padding: 0; overflow: hidden; box-sizing: border-box; }
+		*, *:before, *:after { box-sizing: inherit; }
+		/* system font stack: CSSv4, iOS/macOS>=10.11, Windows, Android, generic */
+		body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+		pre, code { font-family: ui-monospace, Menlo, Consolas, monospace; }
+		body { margin: 0; padding: 0; }
+		h1 { font-size: 1.4em; font-weight: bold; }
+		h2 { font-size: 1.2em; font-weight: bold; }
+		pre { font-size: 0.8em; }
+		/* overlay for loading spinner and errors; centered with table so it works on older browsers */
+		table#overlay { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 100;
+			width: 100%; height: 100%; margin: auto; }
+		table#overlay td { text-align: center; vertical-align: middle; }
+		/* table contains one div for each possible message */
+		.msg { width: 700px; max-width: 700px; margin: 1em auto; text-align: left; padding: 0 1em; }
+		.msg pre { white-space: pre-wrap; }
+		/* loading message should fade in after a second */
+		.msg#loading { text-align: center; padding: auto; animation: fadein-50 1s; }
+		@keyframes fadein-50 { 0% {opacity: 0%;} 50% {opacity: 0%;} 100% {opacity: 100%;} }
+		/* loading spinner from loading.io (public domain) */
+		.msg#loading { text-align: center; padding: auto; }
+		.spin { display: inline-block; position: relative; width: 80px; height: 80px; }
+		.spin div { position: absolute; top: 33px; width: 13px; height: 13px; border-radius: 50%;
+			animation-timing-function: cubic-bezier(0, 1, 1, 0); }
+		.spin div:nth-child(1) { left: 8px; animation: spin1 0.6s infinite; }
+		.spin div:nth-child(2) { left: 8px; animation: spin2 0.6s infinite; }
+		.spin div:nth-child(3) { left: 32px; animation: spin2 0.6s infinite; }
+		.spin div:nth-child(4) { left: 56px; animation: spin3 0.6s infinite; }
+		@keyframes spin1 { 0% {transform: scale(0);} 100% {transform: scale(1);} }
+		@keyframes spin3 { 0% {transform: scale(1);} 100% {transform: scale(0);} }
+		@keyframes spin2 { 0% {transform: translate(0, 0);} 100% {transform: translate(24px, 0);} }
+		/* dark colour scheme */
+		body, #overlay { background: #222; color: #fff; }
+		a { color: #abe; text-decoration: underline; }
+		a:hover { background: #abe; color: #036; text-decoration: none; }
+		a:focus { background: #fc4; color: #000; text-decoration: none; }
+		a:active { background: #c91; color: #000; text-decoration: none; }
+		.spin div { background: #fff; /* spinner colour */ }
+		/* reduce font size and remove fixed width on smaller screens */
+		@media screen and (max-width: 900px) { body { font-size: 12px; } .msg { width: inherit; } }
+	</style>
+</head><body>
+	<table id="overlay"><tr><td>
+		<div class="msg" id="error-nojs">
+			<h1>This demo needs JavaScript to be enabled</h1>
+			<p>It looks like JavaScript is disabled or not supported by your browser. If you've disabled JavaScript in
+			your browser's settings or you're using an extension like NoScript, you'll need to add an exception for
+			this address to see the demo.</p>
+		</div>
+		<div class="msg" id="loading" style="display: none;">
+			<div class="spin"><div></div><div></div><div></div><div></div></div>
+			<p id="loading-text">Loading demo</p>
+			<p id="loading-text-2" style="display: none">The demo is taking unusually long to load. This could be
+			normal, or it could mean the page has run into an unexpected error. On desktop browsers, you can usually
+			open your JavaScript console using Ctrl-Shift-I, ⌘⌥I or F12 and check for errors.</p>
+		</div>
+		<div class="msg" id="error-generic" style="display: none;">
+			<h1>Unknown error encountered</h1>
+			<p>This may be temporary. Try <a href="javascript:document.location.reload();">reloading the page</a>.</p>
+			<pre id="error-generic-log">No error information available</pre>
+			<pre class="useragent">Browser information not available</pre>
+		</div>
+		<div class="msg" id="error-webgl" style="display: none;">
+			<h1>This demo needs WebGL2 support</h1>
+			<p>It looks like your browser doesn't support the <a href="https://get.webgl.org/webgl2/">WebGL2</a>
+			standard. Please check our <a href="requirements.html">system requirements page</a> for more information.</p>
+			<pre class="useragent">Browser information not available</pre>
+		</div>
+	</td></tr></table>
+	<div id="app"><canvas id="canvas" tabindex="-1"></canvas></div>
+	<script>
+		function $(s) { return document.querySelector(s); }
+		function $$(s) { return document.querySelectorAll(s); }
+		if (!NodeList.prototype.forEach) NodeList.prototype.forEach = function(f, self) {
+			for (var i = 0; i < this.length; i++) { f.call(self ? self : window, this[i], i, this); }
+		}
+		function ShowMessage(id) {
+			$("#overlay").style.display = "table"; $("#overlay").style.opacity = "100%";
+			$$(".msg").forEach(function(x) { x.style.display = "none"; });
+			$("#"+id).style.display = "block";
+		}
+		var error_handler_triggered = false;
+		window.onerror = function HandleGenericError(msg, url, line, col, err) {
+			ShowMessage("error-generic");
+			/* err is undefined on webkit (bug 132945, filed 2014, open as of 2022) */
+			$("#error-generic-log").textContent = err ? err.toString() : msg;
+			if (err && err.stack && err.stack.startsWith(err.name)) {
+				$("#error-generic-log").textContent = err.stack; /* v8 behaviour */
+			} else if (err && err.stack) {
+				$("#error-generic-log").textContent += "\n" + err.stack; /* spidermonkey & jsc */
+			}
+		}
+		function HideLoadingAnimation() {
+			/* fade out overlay, then hide it and reset opacity in case we show it again */
+			var overlay = $("#overlay"), opacity = 100, dt = -10;
+			window.requestAnimationFrame(function FadeOutOverlayAnim() {
+				if (error_handler_triggered) { overlay.style.opacity = "100%"; return; }
+				opacity += dt; overlay.style.opacity = opacity + "%";
+				if (opacity <= 0) { overlay.style.opacity = "100%"; overlay.style.display = "none"; }
+				else { window.requestAnimationFrame(FadeOutOverlayAnim); }
+			});
+		}
+		(function EntryPoint() {
+			ShowMessage("loading");
+			/* fill useragent information for error messages */
+			$$(".useragent").forEach(function(x) { x.textContent = navigator.userAgent; });
+			/* show loading-text-2 if loading takes more than 10 seconds */
+			var tm_replace_loading_text = window.setTimeout(function ReplaceLoadingText() {
+				var loading_text = $("#loading-text"), opacity = 100, dt = -5;
+				window.requestAnimationFrame(function ReplaceLoadingTextAnim() {
+					opacity += dt; loading_text.style.opacity = opacity + "%";
+					if (opacity <= 0) { dt = +5; loading_text.innerHTML = $("#loading-text-2").innerHTML; }
+					if (opacity <= 100) { window.requestAnimationFrame(ReplaceLoadingTextAnim); }
+				});
+			}, 10000);
+			/* set up canvas */
+			var canvas = $("#canvas");
+			canvas.addEventListener("webglcontextlost", function OnWebGLContextLost(e) {
+				document.location.reload();
+			}, false);
+			function ResizeCanvas() {
+				canvas.style.width = window.innerWidth + "px";
+				canvas.style.height = window.innerHeight + "px";
+			};
+			window.addEventListener("resize", ResizeCanvas);
+			ResizeCanvas();
+			/* set up Module object for Emscripten */
+			window.Module = {
+				preRun: [],
+				postRun: [],
+				print: function(text) { console.log(text); },
+				canvas: canvas,
+				setStatus: function(text) {
+					console.log("Emscripten module status:", text);
+					$("#loading-text").textContent = text;
+					/* this bit is taken from the Emscripten example shell */
+					var is_progress_report = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+					if (!is_progress_report) { HideLoadingAnimation(); }
+				},
+			};
+		})();
+	</script>
+	{{{ SCRIPT }}}
+</body></html>
