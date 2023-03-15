@@ -129,6 +129,15 @@
 	#define DEBUG_ONLY(...) __VA_ARGS__
 #endif
 
+// Invokes undefined behaviour if reached.
+#if COMPILER_HAS_BUILTIN(__builtin_unreachable)
+	#define Unreachable() __builtin_unreachable()
+#elif COMPILER_IS_MSVC(0)
+	#define Unreachable() __assume(0)
+#else
+	#define Unreachable() abort()
+#endif
+
 /***************************************************************************************************
  * Platform detection macros. References:
  * https://github.com/electronicarts/EABase/blob/master/include/Common/EABase/config/eaplatform.h

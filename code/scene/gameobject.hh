@@ -31,7 +31,7 @@ struct GameObject {
 			case DIRECTIONAL_LIGHT: return "DirectionalLight";
 			case POINT_LIGHT:       return "PointLight";
 			case MESH_INSTANCE:     return "MeshInstance";
-			case TypeCount: AssertUnreachable();
+			case TypeCount: Unreachable();
 		}
 	}
 

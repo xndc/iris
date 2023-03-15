@@ -1,13 +1,8 @@
 #pragma once
+#include <assert.h>
 #include <loguru.hpp>
 #include "base/base.hh"
 
-// Marks that the current location is not supposed to be reachable. In debug builds, triggers an
-// assertion failure if reached. In release builds, reaching this is undefined behaviour.
-#if COMPILER_HAS_BUILTIN(__builtin_unreachable)
-	#define AssertUnreachable() do { assert(!("Unreachable")); __builtin_unreachable(); } while(0)
-#else
-	#define AssertUnreachable() do { assert(!("Unreachable")); abort(); } while(0)
-#endif
+#define Panic(...) do { LOG_F(FATAL, __VA_ARGS__); Unreachable(); } while(0)
 
 void InitDebugSystem(int argc, char* argv[]);
