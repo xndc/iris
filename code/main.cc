@@ -5,6 +5,7 @@
 #include "base/debug.hh"
 #include "base/math.hh"
 #include "graphics/opengl.hh"
+#include "scene/scene.hh"
 
 #if PLATFORM_WEB
 #include <emscripten.h>
@@ -35,6 +36,19 @@ SDLMAIN_DECLSPEC int main(int argc, char* argv[]) {
 	sqlite3* db;
 	CHECK_EQ_F(sqlite3_open_v2(NULL, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_MEMORY, NULL), SQLITE_OK,
 		"Failed to create test SQLite database: %s", sqlite3_errmsg(db));
+
+	Scene* scene = new Scene{};
+	scene->New<PointLight>() = PointLight{.color = vec3(0.2, 0.4, 0.6)};
+	scene->New<PointLight>() = PointLight{.color = vec3(0.6, 0.1, 0.1)};
+	scene->New<DirectionalLight>() = DirectionalLight{.color = vec3(0.1, 0.1, 0.1)};
+	LOG_F(INFO, "PointLights: %p %u", scene->arrays[PointLight::type], scene->counts[PointLight::type]);
+	for (PointLight& p : scene->Iter<PointLight>()) {
+		LOG_F(INFO, "* %p R=%.02f G=%.02f B=%.02f", &p, p.color.r, p.color.g, p.color.b);
+	}
+	LOG_F(INFO, "All Objects:");
+	for (GameObject& obj : scene->IterAll()) {
+		LOG_F(INFO, "* %p", &obj);
+	}
 
 	#if defined(EMSCRIPTEN)
 		emscripten_set_main_loop(loop, 0, true);
