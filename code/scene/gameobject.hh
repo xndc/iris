@@ -1,5 +1,7 @@
 #pragma once
 
+#include "base/base.hh"
+#include "base/debug.hh"
 #include "base/math.hh"
 
 struct Scene;
@@ -11,7 +13,6 @@ struct Transform {
 	quat rotation;
 };
 
-
 struct GameObject {
 	enum Type {
 		GAME_OBJECT,
@@ -21,10 +22,88 @@ struct GameObject {
 		POINT_LIGHT,
 		MESH_INSTANCE,
 		TypeCount,
-	};
-	static const Type type = GAME_OBJECT;
+	} type;
+	constexpr const char* GetTypeName() const {
+		switch (type) {
+			case GAME_OBJECT:       return "GameObject";
+			case SCENE_LINK:        return "SceneLink";
+			case AMBIENT_CUBE:      return "AmbientCube";
+			case DIRECTIONAL_LIGHT: return "DirectionalLight";
+			case POINT_LIGHT:       return "PointLight";
+			case MESH_INSTANCE:     return "MeshInstance";
+			case TypeCount: AssertUnreachable();
+		}
+	}
+
+	GameObject(): type{GAME_OBJECT} {}
+	GameObject(Type type): type{type} {}
 
 	GameObject* parent = nullptr;
+	GameObject* firstChild = nullptr;
+	GameObject* nextSibling = nullptr;
+
+	FORCEINLINE GameObject* GetLastChild() {
+		GameObject* lastChild = this->firstChild;
+		while (lastChild->nextSibling != nullptr) {
+			lastChild = lastChild->nextSibling;
+		}
+		return lastChild;
+	}
+
+	struct ChildIterator {
+		GameObject* parent;
+		GameObject* current;
+		GameObject* next;
+		FORCEINLINE constexpr ChildIterator(GameObject* parent):
+			parent{parent},
+			current{parent ? parent->firstChild : nullptr},
+			next{current ? current->nextSibling : nullptr} {}
+		FORCEINLINE ChildIterator& begin() {
+			current = parent ? parent->firstChild : nullptr;
+			next = current ? current->nextSibling : nullptr;
+			return *this;
+		}
+		FORCEINLINE const ChildIterator end() { return ChildIterator(nullptr); }
+		FORCEINLINE ChildIterator& operator++() {
+			current = next;
+			next = current ? current->nextSibling : nullptr;
+			return *this;
+		}
+		FORCEINLINE GameObject& operator*() { return *current; }
+		FORCEINLINE bool operator!=(const ChildIterator& other) { return current != other.current; }
+	};
+	FORCEINLINE ChildIterator Children() { return ChildIterator(this); }
+
+	void Add(GameObject* child) {
+		if (ExpectFalse(child == nullptr)) { return; }
+		if (this->firstChild == nullptr) {
+			this->firstChild = child;
+		} else {
+			GameObject* lastChild = GetLastChild();
+			if (lastChild) {
+				lastChild->nextSibling = child;
+			}
+		}
+		child->parent = this;
+		child->nextSibling = nullptr;
+	}
+
+	void Delete() {
+		if (this->parent) {
+			if (this->parent->firstChild == this) {
+				this->parent->firstChild = this->nextSibling;
+			}
+			for (GameObject& obj : this->parent->Children()) {
+				if (obj.nextSibling == this) { obj.nextSibling = this->nextSibling; }
+			}
+		}
+		for (GameObject& obj : Children()) {
+			obj.parent = this->parent;
+		}
+		memset(this, 0, sizeof(*this));
+		delete this;
+	}
+
 	bool needsTransformUpdate = true;
 
 	FORCEINLINE const Transform& GetLocal() const { return this->local; }
@@ -49,12 +128,12 @@ struct GameObject {
 };
 
 struct SceneLink : GameObject {
-	static const Type type = SCENE_LINK;
+	SceneLink(): GameObject{SCENE_LINK} {}
 	Scene* scene;
 };
 
 struct AmbientCube : GameObject {
-	static const Type type = AMBIENT_CUBE;
+	AmbientCube(): GameObject{AMBIENT_CUBE} {}
 	union {
 		vec3 colors[6];
 		struct {
@@ -66,16 +145,19 @@ struct AmbientCube : GameObject {
 };
 
 struct DirectionalLight : GameObject {
-	static const Type type = DIRECTIONAL_LIGHT;
+	DirectionalLight(): GameObject{DIRECTIONAL_LIGHT} {}
+	DirectionalLight(vec3 color): DirectionalLight{} { this->color = color; }
 	vec3 color;
 };
 
 struct PointLight : GameObject {
-	static const Type type = POINT_LIGHT;
+	PointLight(): GameObject{POINT_LIGHT} {}
+	PointLight(vec3 color): PointLight{} { this->color = color; }
 	vec3 color;
 };
 
 struct MeshInstance : GameObject {
-	static const Type type = MESH_INSTANCE;
+	MeshInstance(): GameObject{MESH_INSTANCE} {}
+	MeshInstance(Mesh* mesh): MeshInstance{} { this->mesh = mesh; }
 	Mesh* mesh;
 };

@@ -35,7 +35,6 @@ add_executable(Main
 	"code/external.cc"
 	"code/base/debug.cc"
 	"code/graphics/opengl.cc"
-	"code/scene/scene.cc"
 )
 target_include_directories(Main PRIVATE "code")
 set_target_properties(Main PROPERTIES OUTPUT_NAME "${CMAKE_PROJECT_NAME}")
