@@ -4,6 +4,7 @@
 #include "base/base.hh"
 #include "base/debug.hh"
 #include "base/math.hh"
+#include "base/string.hh"
 #include "graphics/opengl.hh"
 #include "scene/gameobject.hh"
 
@@ -51,10 +52,11 @@ SDLMAIN_DECLSPEC int main(int argc, char* argv[]) {
 		}
 	}
 
-	LOG_F(INFO, "* %p %s", scene, scene->GetTypeName());
+	String log = String::format("* %p %s", scene, scene->GetTypeName());
 	for (GameObject& obj : scene->Children()) {
-		LOG_F(INFO, "  * %p %s", &obj, obj.GetTypeName());
+		log = String::join(std::move(log), String::format("\n  * %p %s", &obj, obj.GetTypeName()));
 	}
+	LOG_F(INFO, "All objects:\n%s", log.cstr);
 
 	#if defined(EMSCRIPTEN)
 		emscripten_set_main_loop(loop, 0, true);

@@ -34,6 +34,7 @@ add_executable(Main
 	"code/main.cc"
 	"code/external.cc"
 	"code/base/debug.cc"
+	"code/base/string.cc"
 	"code/graphics/opengl.cc"
 )
 target_include_directories(Main PRIVATE "code")
