@@ -5,7 +5,6 @@
  **************************************************************************************************/
 
 #define _USE_MATH_DEFINES
-#undef M_PI // SDL and MSVCRT definitions conflict
 #include <math.h>
 
 #include <glm/glm.hpp>
