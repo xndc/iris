@@ -5,6 +5,7 @@
 #include "base/debug.hh"
 #include "base/math.hh"
 #include "base/string.hh"
+#include "base/filesystem.hh"
 #include "graphics/opengl.hh"
 #include "scene/gameobject.hh"
 
@@ -57,6 +58,20 @@ SDLMAIN_DECLSPEC int main(int argc, char* argv[]) {
 		log = String::join(std::move(log), String::format("\n  * %p %s", &obj, obj.GetTypeName()));
 	}
 	LOG_F(INFO, "All objects:\n%s", log.cstr);
+
+	auto test_path_join = [](String a, String b) {
+		LOG_F(INFO, "PathJoin('%s', '%s') == '%s'", a.cstr, b.cstr, PathJoin(a, b).cstr);
+	};
+	test_path_join("C:/Windows", "System32");
+	test_path_join("C:/Windows/", "/System32/");
+
+	LOG_F(INFO, "GetCurrentDir() = %s", GetCurrentDir().cstr);
+	for (String f : DirectoryIterator(GetCurrentDir())) {
+		LOG_F(INFO, "* %c %llu %s",
+			PathIsFile(f) ? '-' : PathIsDirectory(f) ? 'd' : '?',
+			GetFileModificationTime(f),
+			f.cstr);
+	}
 
 	#if defined(EMSCRIPTEN)
 		emscripten_set_main_loop(loop, 0, true);
