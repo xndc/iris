@@ -39,9 +39,12 @@ struct String {
 	FORCEINLINE constexpr String(const char* cstr, uint32_t capacity, uint32_t length):
 		cstr{cstr}, capacity{capacity}, _size{0} {}
 
+	// Implicit conversion from char*. Produces a String that acts as a view into another buffer.
+	FORCEINLINE String(const char* cstr): String{cstr, 0, 0} {}
+
 	// Returns a String that acts as a view into another buffer. The buffer must be null-terminated.
 	// Care should be taken to make sure that this String doesn't outlive the buffer.
-	FORCEINLINE static String view(const char* cstr) { return String(cstr, 0, 0); }
+	FORCEINLINE static String view(const char* cstr) { return String(cstr); }
 
 	// Returns a String that acts as a view into another String. Care should be taken to make sure
 	// that this String doesn't outlive its target.
@@ -97,15 +100,19 @@ struct String {
 	FORCEINLINE constexpr operator bool() { return cstr && cstr[0] != '\0'; }
 
 	// Equality test against null-terminated string or nullptr. Comparison performed with strcmp.
-	FORCEINLINE bool operator==(const char* rhs) { return (cstr == rhs) || (cstr && (strcmp(cstr, rhs) == 0)); }
-	FORCEINLINE bool operator!=(const char* rhs) { return (cstr == rhs) || (cstr && (strcmp(cstr, rhs) != 0)); }
+	FORCEINLINE bool operator==(const char* rhs) {
+		return (cstr && rhs) ? (strcmp(cstr, rhs) == 0) : (cstr == rhs);
+	}
+	FORCEINLINE bool operator!=(const char* rhs) {
+		return (cstr && rhs) ? (strcmp(cstr, rhs) != 0) : (cstr != rhs);
+	}
 
 	// Equality test against String. Comparison performed with strcmp. Null strings compare equal.
 	FORCEINLINE bool operator==(const String rhs) {
-		return (cstr == rhs.cstr) || (cstr && rhs.cstr && (strcmp(cstr, rhs.cstr) == 0));
+		return (cstr && rhs.cstr) ? (strcmp(cstr, rhs.cstr) == 0) : (cstr == rhs.cstr);
 	}
 	FORCEINLINE bool operator!=(const String rhs) {
-		return (cstr == rhs.cstr) || (cstr && rhs.cstr && (strcmp(cstr, rhs.cstr) != 0));
+		return (cstr && rhs.cstr) ? (strcmp(cstr, rhs.cstr) != 0) : (cstr != rhs.cstr);
 	}
 
 	// Byte-level indexing operator. Does no bounds checking whatsoever.
@@ -132,8 +139,11 @@ struct String {
 	// FIXME: Need to test these. I don't have the best track record with iterators.
 	FORCEINLINE const String begin() const { return String(cstr, 0, 0); }
 	FORCEINLINE const String end() const { return String(nullptr, 0, 0); }
-	FORCEINLINE const String operator++() { return (cstr[0] == '\0') ? end() : String(&cstr[1], 0, 0); }
-	FORCEINLINE const char operator*() { return cstr[0]; }
+	FORCEINLINE const String& operator++() {
+		const_cast<const char*&>(cstr) = (cstr == nullptr || cstr[0] == '\0') ? nullptr : &cstr[1];
+		return *this;
+	}
+	FORCEINLINE char& operator*() { return const_cast<char&>(cstr[0]); }
 
 	// Retrieves a writable pointer into this String's backing buffer. If the String doesn't have
 	// ownership of its buffer, this function will duplicate it into a new one.

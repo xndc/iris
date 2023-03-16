@@ -4,8 +4,8 @@
 #include <string.h>
 #include <stb_sprintf.h>
 
-String::String(uint32_t size): cstr{nullptr}, capacity{size + 1}, _size{size} {
-	const_cast<char*&>(cstr) = static_cast<char*>(malloc(capacity));
+String::String(uint32_t size): cstr{nullptr}, capacity{size + 1}, _size{0} {
+	const_cast<char*&>(cstr) = static_cast<char*>(calloc(capacity, 1));
 }
 
 String String::copy(const char* cstr, uint32_t size) {
@@ -13,12 +13,12 @@ String String::copy(const char* cstr, uint32_t size) {
 	char* new_cstr = static_cast<char*>(malloc(size + 1));
 	memcpy(new_cstr, cstr, size);
 	new_cstr[size] = '\0';
-	return String(new_cstr, size + 1, strlen(new_cstr));
+	return String(new_cstr, size + 1, static_cast<uint32_t>(strlen(new_cstr)));
 }
 
 String String::copy(const char* cstr) {
 	if (ExpectFalse(!cstr)) { return String(); }
-	size_t len = strlen(cstr);
+	uint32_t len = static_cast<uint32_t>(strlen(cstr));
 	return String::copy(cstr, len);
 }
 
