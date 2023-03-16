@@ -53,8 +53,6 @@ bool WriteFile(const String& path, const String& contents) {
 #if PLATFORM_WINDOWS
 // This should be at the end of the file, to avoid polluting the rest with Windows.h stuff.
 #include "base/filesystem_win.inl"
-#elif PLATFORM_UNIX
-#include "base/filesystem_unix.inl"
 #else
-#include "base/filesystem_null.inl"
+#include "base/filesystem_unix.inl"
 #endif

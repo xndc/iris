@@ -71,6 +71,15 @@ SDLMAIN_DECLSPEC int main(int argc, char* argv[]) {
 			PathIsFile(f) ? '-' : PathIsDirectory(f) ? 'd' : '?',
 			GetFileModificationTime(f),
 			f.cstr);
+		if (f == "data") {
+			for (String ff : DirectoryIterator(f)) {
+				ff = PathJoin(f, ff);
+				LOG_F(INFO, "  * %c %llu %s",
+					PathIsFile(ff) ? '-' : PathIsDirectory(ff) ? 'd' : '?',
+					GetFileModificationTime(ff),
+					ff.cstr);
+			}
+		}
 	}
 
 	#if defined(EMSCRIPTEN)
