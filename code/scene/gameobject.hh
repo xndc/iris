@@ -22,7 +22,7 @@ struct GameObject {
 		POINT_LIGHT,
 		MESH_INSTANCE,
 		TypeCount,
-	} type;
+	};
 	constexpr const char* GetTypeName() const {
 		switch (type) {
 			case GAME_OBJECT:       return "GameObject";
@@ -31,8 +31,9 @@ struct GameObject {
 			case DIRECTIONAL_LIGHT: return "DirectionalLight";
 			case POINT_LIGHT:       return "PointLight";
 			case MESH_INSTANCE:     return "MeshInstance";
-			case TypeCount: Unreachable();
+			case TypeCount:         Unreachable();
 		}
+		Unreachable(); // suppresses warning on MSVC
 	}
 
 	GameObject(): type{GAME_OBJECT} {}
@@ -104,6 +105,7 @@ struct GameObject {
 		delete this;
 	}
 
+	Type type;
 	bool needsTransformUpdate = true;
 
 	FORCEINLINE const Transform& GetLocal() const { return this->local; }
@@ -129,11 +131,13 @@ struct GameObject {
 
 struct SceneLink : GameObject {
 	SceneLink(): GameObject{SCENE_LINK} {}
-	Scene* scene;
+	SceneLink(GameObject* scene): SceneLink{} { this->scene = scene; }
+	GameObject* scene;
 };
 
 struct AmbientCube : GameObject {
 	AmbientCube(): GameObject{AMBIENT_CUBE} {}
+	AmbientCube(vec3 colors[6]): AmbientCube{} { memcpy(&this->colors, colors, sizeof(this->colors)); }
 	union {
 		vec3 colors[6];
 		struct {
