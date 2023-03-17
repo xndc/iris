@@ -9,6 +9,7 @@
 #include "base/debug.hh"
 #include "base/filesystem.hh"
 #include "graphics/defaults.hh"
+#include "scene/gameobject.hh"
 
 static bool ModelLoader_Initialised = false;
 std::unordered_map<uint64_t, Model> ModelLoader_Cache = {};
@@ -296,76 +297,71 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 		}
 	}
 
-#if 0
-
 	// Extract nodes and count meshes (GLTF primitives):
+	// TODO: Support GLTF scenes
 	JSON_Array* jnodes  = json_object_get_array(root, "nodes");
 	JSON_Array* jmeshes = json_object_get_array(root, "meshes");
-	size_t meshCount = 0;
-	size_t nodeCount = json_array_get_count(jnodes);
-	GLTFNode* nodes  = Alloc(nodeCount, GLTFNode);
-	for (size_t inode = 0; inode < nodeCount; inode++) {
-		GLTFNode* node = &nodes[inode];
-		node->parent = NULL;
+	GameObject* root_object = new GameObject();
+	LOG_F(INFO, "-> root object [%p]", root_object);
+	auto node_objects = std::vector<GameObject>(json_array_get_count(jnodes));
+	uint32_t mesh_count = 0;
+	// Parent all nodes to root object to begin with
+	for (uint32_t inode = 0; inode < json_array_get_count(jnodes); inode++) {
+		GameObject& node = node_objects[inode];
+		node.parent = root_object;
 	}
-	for (size_t inode = 0; inode < nodeCount; inode++) {
-		GLTFNode* node = &nodes[inode];
-		node->local = mat4(1);
-		node->scene = mat4(1);
+	// Process nodes: reparent, set transforms, count primitives
+	for (uint32_t inode = 0; inode < json_array_get_count(jnodes); inode++) {
+		GameObject& node = node_objects[inode];
 		JSON_Object* jnode = json_array_get_object(jnodes, inode);
-		// Update this node's children:
+
 		JSON_Array* jchildren = json_object_get_array(jnode, "children");
 		if (jchildren) {
-			for (size_t ichild = 0; ichild < json_array_get_count(jchildren); ichild++) {
-				int ichildnode = (int) json_array_get_number(jchildren, ichild);
-				nodes[ichildnode].parent = node;
+			for (uint32_t ichild = 0; ichild < json_array_get_count(jchildren); ichild++) {
+				node_objects[uint32_t(json_array_get_number(jchildren, ichild))].parent = &node;
 			}
 		}
-		// Extract or generate local transform matrix:
+
 		JSON_Array* jmat = json_object_get_array(jnode, "matrix");
+		Transform& nt = node.MutLocal();
 		if (jmat) {
-			// Both GLM and GLSL use column-major order for matrices, so just use a loop:
-			for (int ipos = 0; ipos < 16; ipos++) {
-				((float*)&node->local)[ipos] = (float) json_array_get_number(jmat, ipos);
-			}
+			// We'll have to decompose this into translation, rotation and scale
+			mat4 matrix;
+			float* fmatrix = reinterpret_cast<float*>(&matrix); // FIXME: Surely glm has a helper for this?
+			for (int i = 0; i < 16; i++) { fmatrix[i] = float(json_array_get_number(jmat, i)); }
+			vec3 skew; vec4 perspective;
+			glm::decompose(matrix, nt.scale, nt.rotation, nt.position, skew, perspective);
 		} else {
-			quat r = quat(1, 0, 0, 0);
-			vec3 t = vec3(0);
-			vec3 s = vec3(1);
 			JSON_Array* jr = json_object_get_array(jnode, "rotation");
 			JSON_Array* jt = json_object_get_array(jnode, "translation");
 			JSON_Array* js = json_object_get_array(jnode, "scale");
-			if (jr) {
-				r[0] = (float) json_array_get_number(jr, 0); // x
-				r[1] = (float) json_array_get_number(jr, 1); // y
-				r[2] = (float) json_array_get_number(jr, 2); // z
-				r[3] = (float) json_array_get_number(jr, 3); // w
-			}
-			if (jt) {
-				t[0] = (float) json_array_get_number(jt, 0);
-				t[1] = (float) json_array_get_number(jt, 1);
-				t[2] = (float) json_array_get_number(jt, 2);
-			}
-			if (js) {
-				s[0] = (float) json_array_get_number(js, 0);
-				s[1] = (float) json_array_get_number(js, 1);
-				s[2] = (float) json_array_get_number(js, 2);
-			}
-			// FIXME: Is there a specific order this has to be done in?
-			node->local = glm::translate(node->local, t);
-			node->local *= glm::mat4_cast(r);
-			node->local = glm::scale(node->local, s);
+			if (jr) { for (int i = 0; i < 4; i++) { nt.rotation[i] = float(json_array_get_number(jr, i)); } }
+			if (jt) { for (int i = 0; i < 3; i++) { nt.position[i] = float(json_array_get_number(jt, i)); } }
+			if (js) { for (int i = 0; i < 3; i++) { nt.scale[i]    = float(json_array_get_number(js, i)); } }
 		}
-		// Count primitives:
+
+		uint32_t node_mesh_count = 0;
 		if (json_object_has_value(jnode, "mesh")) {
 			int igltfmesh = (int) json_object_get_number(jnode, "mesh");
 			JSON_Object* jmesh = json_array_get_object(jmeshes, igltfmesh);
-			meshCount += json_array_get_count(json_object_get_array(jmesh, "primitives"));
+			node_mesh_count = json_array_get_count(json_object_get_array(jmesh, "primitives"));
 		}
+		mesh_count += node_mesh_count;
+
+		LOG_F(INFO,
+			"-> node=%u [%p] parent=[%p] pos=(%.02f %.02f %.02f) scl=(%.02f %.02f %.02f) "
+			"rot=(%.02f %.02f %.02f %.02f) meshes=%u",
+			inode, &node, node.parent,
+			nt.position.x, nt.position.y, nt.position.z,
+			nt.scale.x, nt.scale.y, nt.scale.z,
+			nt.rotation.x, nt.rotation.y, nt.rotation.z, nt.rotation.w,
+			node_mesh_count);
 	}
 
+#if 0
+
 	// Compute the scene-space transform matrix for each node:
-	for (size_t inode = 0; inode < nodeCount; inode++) {
+	for (size_t inode = 0; inode < json_array_get_count(jnodes); inode++) {
 		GLTFNode* node = &nodes[inode];
 		// The correct order is probably node.local * node.parent->scene for each node.
 		// We'll do it iteratively instead of recursively, though.
@@ -379,12 +375,12 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 	}
 
 	// Extract meshes (GLTF primitives) from the node structure:
-	Mesh* meshes = Alloc(meshCount, Mesh);
-	mat4* meshTransforms = Alloc(meshCount, mat4);
-	Material** meshMaterials = Alloc(meshCount, Material*);
-	memset(meshes, 0, meshCount * sizeof(Mesh));
+	Mesh* meshes = Alloc(mesh_count, Mesh);
+	mat4* meshTransforms = Alloc(mesh_count, mat4);
+	Material** meshMaterials = Alloc(mesh_count, Material*);
+	memset(meshes, 0, mesh_count * sizeof(Mesh));
 	size_t imesh = 0;
-	for (size_t inode = 0; inode < nodeCount; inode++) {
+	for (size_t inode = 0; inode < json_array_get_count(jnodes); inode++) {
 		GLTFNode* node = &nodes[inode];
 		JSON_Object* jnode = json_array_get_object(jnodes, inode);
 		if (json_object_has_value(jnode, "mesh")) {
@@ -468,7 +464,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 			}
 		}
 	}
-	meshCount = imesh;
+	mesh_count = imesh;
 
 	// Free temporary storage:
 	for (size_t i = 0; i < bufferCount; i++) {
@@ -487,7 +483,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 	model->textures = textures;
 	model->materialCount = materialCount;
 	model->materials = materials;
-	model->meshCount = meshCount;
+	model->mesh_count = mesh_count;
 	model->meshTransforms = meshTransforms;
 	model->meshMaterials = meshMaterials;
 	model->meshes = meshes;

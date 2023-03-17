@@ -8,9 +8,9 @@ struct Scene;
 struct Mesh;
 
 struct Transform {
-	vec3 position;
-	vec3 scale;
-	quat rotation;
+	vec3 position = vec3(0);
+	vec3 scale = vec3(1);
+	quat rotation = quat(1, 0, 0, 0);
 };
 
 struct GameObject {
