@@ -44,7 +44,7 @@ struct ElementType {
 			case Count:  Unreachable();
 		} Unreachable();
 	}
-	constexpr const char* GLTFName() const {
+	constexpr const char* GLTFType() const {
 		switch (v) {
 			case SCALAR: return "SCALAR";
 			case VEC2:   return "VEC2";
@@ -56,9 +56,9 @@ struct ElementType {
 			case Count:  Unreachable();
 		}; Unreachable();
 	}
-	static ElementType FromGLTFName(const char* gltf) {
+	static ElementType FromGLTFType(const char* gltf) {
 		for (uint8_t i = 0; i < Count; i++) {
-			if (strcmp(gltf, ElementType(i).GLTFName()) == 0) {
+			if (strcmp(gltf, ElementType(i).GLTFType()) == 0) {
 				return ElementType(i);
 			}
 		}
@@ -101,6 +101,18 @@ struct ComponentType {
 			case I32: return GL_INT;
 			case U32: return GL_UNSIGNED_INT;
 			case F32: return GL_FLOAT;
+			case Count: Unreachable();
+		} Unreachable();
+	}
+	constexpr const char* Name() const {
+		switch (v) {
+			case I8:  return "I8";
+			case U8:  return "U8";
+			case I16: return "I16";
+			case U16: return "U16";
+			case I32: return "I32";
+			case U32: return "U32";
+			case F32: return "F32";
 			case Count: Unreachable();
 		} Unreachable();
 	}
@@ -203,7 +215,7 @@ struct Buffer {
 	FORCEINLINE constexpr uint32_t Components() const { return elements * etype.Components(); }
 
 	// Compute the total size of this buffer in bytes.
-	FORCEINLINE constexpr uint32_t GetBytes() const { return Components() * ctype.BytesPerComponent(); }
+	FORCEINLINE constexpr uint32_t Size() const { return Components() * ctype.BytesPerComponent(); }
 
 	// Get the OpenGL target that this buffer can be bound to.
 	FORCEINLINE constexpr GLenum GLTarget() const {

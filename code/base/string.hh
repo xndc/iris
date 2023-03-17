@@ -166,4 +166,7 @@ struct String {
 	FORCEINLINE ~String() {
 		if (capacity != 0) { free((void*)(cstr)); }
 	}
+
+	// Stops this string from getting deallocated if it goes out of scope.
+	FORCEINLINE String& leak() { const_cast<uint32_t&>(capacity) = 0; return *this; }
 };

@@ -54,99 +54,106 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 		LOG_F(ERROR, "Can only load glTF 2.0 models; model version is %s", gltf_version.cstr);
 	}
 
-#if 0
-
-	// Extract buffers:
+	// Extract GLTF buffers:
 	JSON_Array* jbuffers = json_object_get_array(root, "buffers");
-	size_t bufferCount   = json_array_get_count(jbuffers);
-	size_t* bufferSizes  = Alloc(bufferCount, size_t);
-	char** buffers       = Alloc(bufferCount, char*);
-	for (size_t ibuf = 0; ibuf < bufferCount; ibuf++) {
+	auto buffer_sizes = std::vector<size_t>(json_array_get_count(jbuffers));
+	auto buffer_datas = std::vector<uint8_t*>(json_array_get_count(jbuffers));
+	for (size_t ibuf = 0; ibuf < json_array_get_count(jbuffers); ibuf++) {
 		JSON_Object* jbuf = json_array_get_object(jbuffers, ibuf);
-		buffers[ibuf] = NULL;
 		// TODO: This can be a data URI, maybe we should support that?
 		const char* uri = json_object_get_string(jbuf, "uri");
-		size_t len = (size_t) json_object_get_number(jbuf, "byteLength");
-		if (uri && len) {
+		size_t size = (size_t) json_object_get_number(jbuf, "byteLength");
+		if (uri && size) {
 			// TODO: We should probably make this work with URIs like "../x.png" too.
-			stbsp_snprintf(filePath, countof(filePath), "%s/%s", gltfDirectory, uri);
-			bufferSizes[ibuf] = len;
-			size_t realLen;
-			buffers[ibuf] = ReadFileAlloc(filePath, "rb", &realLen);
-			if (len != realLen) {
-				LOG_F(WARNING, "GLTF buffer object has length %llu but referenced file has length %ju", len, realLen);
-			}
+			String source_path = String::format("%s/%s", gltf_directory.cstr, uri);
+			buffer_sizes[ibuf] = size;
+			buffer_datas[ibuf] = (uint8_t*)(ReadFile(source_path).leak().cstr);
 		}
-		if (buffers[ibuf] == NULL) {
-			bufferSizes[ibuf] = 0;
-			LOG_F(WARNING, "Failed to read buffer %ju from model", ibuf);
+		if (!buffer_datas[ibuf]) {
+			buffer_sizes[ibuf] = 0;
+			LOG_F(WARNING, "Failed to read buffer %zu (%s) from model", ibuf, uri);
 		}
 	}
 
-	// Extract accessors:
-	// TODO: Support min/max properties.
-	// TODO: Support sparse accessors.
-	// TODO: Support for integer value normalization, whatever that means.
+	// Convert accessors to Buffer objects:
 	JSON_Array* jaccessors = json_object_get_array(root, "accessors");
 	JSON_Array* jbufferviews = json_object_get_array(root, "bufferViews");
-	size_t accessorCount = json_array_get_count(jaccessors);
-	Accessor* accessors = Alloc(accessorCount, Accessor);
-	for (size_t iacc = 0; iacc < accessorCount; iacc++) {
+	auto buffers = std::vector<Buffer>(json_array_get_count(jaccessors));
+	for (uint32_t iacc = 0; iacc < json_array_get_count(jaccessors); iacc++) {
 		JSON_Object* jacc = json_array_get_object(jaccessors, iacc);
 		if (!json_object_has_value(jacc, "bufferView") || json_object_has_value(jacc, "sparse")) {
-			LOG_F(WARNING, "Sparse GLTF accessors are not supported; unable to load accessor %ju from model", iacc);
-		} else {
-			size_t ibv = (size_t) json_object_get_number(jacc, "bufferView");
-			JSON_Object* jbv = json_array_get_object(jbufferviews, ibv);
-			// Retrieve accessor properties:
-			const char* jtype   = json_object_get_string(jacc, "type");
-			int jcomptype = (int) json_object_get_number(jacc, "componentType");
-			int jcount    = (int) json_object_get_number(jacc, "count");
-			int joffset1  = (int) json_object_get_number(jacc, "byteOffset"); // default 0
-			// Retrive bufferview properties:
-			int ibuf      = (int) json_object_get_number(jbv, "buffer");
-			int joffset2  = (int) json_object_get_number(jbv, "byteOffset"); // default 0
-			int jstride   = (int) json_object_get_number(jbv, "byteStride"); // default 0
-			// Create accessor:
-			accessors[iacc] = Accessor(buffers[ibuf], (uint32_t) joffset1 + (uint32_t) joffset2, (uint32_t) jcount,
-				jtype, jcomptype, (uint8_t) jstride);
+			LOG_F(WARNING, "Unable to load accessor %u (sparse accessors are not supported)", iacc);
+			continue;
 		}
+		uint32_t ibv = (uint32_t) json_object_get_number(jacc, "bufferView");
+		JSON_Object* jbv = json_array_get_object(jbufferviews, ibv);
+		// Retrieve accessor properties:
+		const char* jtype  = json_object_get_string(jacc, "type");
+		GLenum jcomptype   = (GLenum) json_object_get_number(jacc, "componentType");
+		uint32_t jcount    = (uint32_t) json_object_get_number(jacc, "count");
+		uint32_t joffset1  = (uint32_t) json_object_get_number(jacc, "byteOffset"); // default 0
+		// Retrive bufferview properties:
+		uint32_t ibuf      = (uint32_t) json_object_get_number(jbv, "buffer");
+		uint32_t joffset2  = (uint32_t) json_object_get_number(jbv, "byteOffset"); // default 0
+		// Probably don't need to read byteStride, since we can infer it from etype/ctype?
+		// Create Buffer:
+		buffers[iacc].etype = ElementType::FromGLTFType(jtype);
+		buffers[iacc].ctype = ComponentType::FromGLEnum(jcomptype);
+		buffers[iacc].elements = jcount;
+		buffers[iacc].cpu_buffer = static_cast<uint8_t*>(malloc(buffers[iacc].Size()));
+		memcpy(buffers[iacc].cpu_buffer, &buffer_datas[ibuf][joffset1 + joffset2], buffers[iacc].Size());
+
+		// FIXME: Upload buffer to GPU!
+
+		LOG_F(INFO, "-> buf=%u bv=%u acc=%u: %u bytes @ %p, %u elements, etype %s ctype %s",
+			ibuf, ibv, iacc, buffers[iacc].Size(), buffers[iacc].cpu_buffer, buffers[iacc].elements,
+			buffers[iacc].etype.GLTFType(), buffers[iacc].ctype.Name());
 	}
 
 	// Extract samplers:
 	JSON_Array* jsamplers  = json_object_get_array(root, "samplers");
-	size_t samplerCount    = json_array_get_count(jsamplers);
-	GLuint* samplers       = Alloc(samplerCount, GLuint);
-	bool* samplerNeedsMips = Alloc(samplerCount, bool);
-	// Create GL sampler objects:
-	glGenSamplers((GLsizei) samplerCount, samplers);
+	auto samplers = std::vector<Sampler*>(json_array_get_count(jsamplers));
+	auto sampler_params = std::vector<SamplerParams>(json_array_get_count(jsamplers));
+	auto sampler_needs_mips = std::vector<bool>(json_array_get_count(jsamplers));
 	// Set sampler parameters:
-	for (size_t ismp = 0; ismp < samplerCount; ismp++) {
+	for (uint32_t ismp = 0; ismp < json_array_get_count(jsamplers); ismp++) {
 		JSON_Object* jsmp = json_array_get_object(jsamplers, ismp);
-		// Retrieve:
-		int minfilter = (int) json_object_get_number(jsmp, "minFilter");
-		int magfilter = (int) json_object_get_number(jsmp, "magFilter");
-		int wrapS = (int) json_object_get_number(jsmp, "wrapS");
-		int wrapT = (int) json_object_get_number(jsmp, "wrapT");
-		// Defaults:
-		if (minfilter == 0) { minfilter = GL_LINEAR; }
-		if (magfilter == 0) { magfilter = GL_LINEAR; }
-		if (wrapS == 0) { wrapS = GL_REPEAT; }
-		if (wrapT == 0) { wrapT = GL_REPEAT; }
-		// Set: (GLTF uses OpenGL enums so we don't have to translate anything)
-		glSamplerParameteri(samplers[ismp], GL_TEXTURE_MIN_FILTER, minfilter);
-		glSamplerParameteri(samplers[ismp], GL_TEXTURE_MAG_FILTER, magfilter);
-		glSamplerParameteri(samplers[ismp], GL_TEXTURE_WRAP_S, wrapS);
-		glSamplerParameteri(samplers[ismp], GL_TEXTURE_WRAP_T, wrapT);
-		// Determine whether this sampler needs mips:
-		samplerNeedsMips[ismp] = false;
-		if (minfilter == GL_NEAREST_MIPMAP_NEAREST ||
-			minfilter == GL_NEAREST_MIPMAP_LINEAR  ||
-			minfilter == GL_LINEAR_MIPMAP_NEAREST  ||
-			minfilter == GL_LINEAR_MIPMAP_LINEAR) {
-			samplerNeedsMips[ismp] = true;
-		}
+		GLenum min_filter = (GLenum) json_object_get_number(jsmp, "minFilter");
+		GLenum mag_filter = (GLenum) json_object_get_number(jsmp, "magFilter");
+		GLenum wrap_s = (GLenum) json_object_get_number(jsmp, "wrapS");
+		GLenum wrap_t = (GLenum) json_object_get_number(jsmp, "wrapT");
+		// GLTF uses OpenGL enums so we don't have to translate
+		sampler_params[ismp].min_filter = min_filter ? min_filter : GL_LINEAR;
+		sampler_params[ismp].mag_filter = mag_filter ? mag_filter : GL_LINEAR;
+		sampler_params[ismp].wrap_s = wrap_s ? wrap_s : GL_REPEAT;
+		sampler_params[ismp].wrap_t = wrap_t ? wrap_t : GL_REPEAT;
+		// We need to keep track, for each sampler, whether or not it needs associated textures to
+		// be mipmap complete. If a texture is ever sampled with one of the MIPMAP samplers, we'll
+		// need to generate mips for it in the next step.
+		sampler_needs_mips[ismp] =
+			min_filter == GL_NEAREST_MIPMAP_NEAREST || min_filter == GL_LINEAR_MIPMAP_NEAREST ||
+			min_filter == GL_NEAREST_MIPMAP_LINEAR  || min_filter == GL_LINEAR_MIPMAP_LINEAR;
+		// Upload sampler to OpenGL
+		samplers[ismp] = GetSampler(sampler_params[ismp]);
+
+		auto enum_to_str = [](GLenum e) { switch(e) {
+			case GL_NEAREST: return "NEAREST";
+			case GL_LINEAR: return "LINEAR";
+			case GL_NEAREST_MIPMAP_NEAREST: return "NEAREST_MIPMAP_NEAREST";
+			case GL_LINEAR_MIPMAP_NEAREST: return "LINEAR_MIPMAP_NEAREST";
+			case GL_NEAREST_MIPMAP_LINEAR: return "NEAREST_MIPMAP_LINEAR";
+			case GL_LINEAR_MIPMAP_LINEAR: return "LINEAR_MIPMAP_LINEAR";
+			case GL_REPEAT: return "REPEAT";
+			case GL_MIRRORED_REPEAT: return "MIRRORED_REPEAT";
+			case GL_CLAMP_TO_BORDER: return "CLAMP_TO_BORDER";
+			case 0: return "0"; default: return "<?>";
+		}};
+		LOG_F(INFO, "-> smp=%u min=%s mag=%s wrapS=%s wrapT=%s mips=%u gl=%u", ismp, enum_to_str(min_filter),
+			enum_to_str(mag_filter), enum_to_str(wrap_s), enum_to_str(wrap_t), bool(sampler_needs_mips[ismp]),
+			samplers[ismp]->gl_sampler);
 	}
+
+#if 0
 
 	// Extract textures (i.e. GLTF images):
 	JSON_Array* jimages = json_object_get_array(root, "images");

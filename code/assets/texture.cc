@@ -25,6 +25,7 @@ namespace DefaultSamplers {
 }
 
 std::unordered_map<uint64_t, Texture> TextureLoader_Cache = {};
+std::unordered_map<uint64_t, Sampler> SamplerLoader_Cache = {};
 
 static void UploadStagedLevels(Texture& texture) {
 	// TODO: Support more image formats than just the 8-bit UNORM ones
@@ -112,8 +113,9 @@ void InitTextureLoader() {
 	DefaultSamplers::MipmappedLinearRepeat.params.mag_filter = GL_LINEAR;
 	UploadSampler(DefaultSamplers::MipmappedLinearRepeat);
 
-	const uint32_t max_expected_textures = 256;
+	const uint32_t max_expected_textures = 256, max_expected_samplers = 32;
 	TextureLoader_Cache.reserve(max_expected_textures);
+	SamplerLoader_Cache.reserve(max_expected_samplers);
 
 	TextureLoader_Initialised = true;
 }
@@ -140,7 +142,7 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 		memset(&texture.levels, 0, sizeof(texture.levels));
 	}
 
-	texture.source_path = source_path;
+	texture.source_path = String::copy(source_path);
 	texture.generate_mips = generate_mips;
 
 	int w, h, c;
@@ -167,8 +169,8 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 	uint32_t mip_w = texture.width, mip_h = texture.height;
 	for (uint32_t i = 0; i < texture.num_levels; i++) {
 		texture_size += mip_w * mip_h * c;
-		mip_w = Max(1, mip_w / 2);
-		mip_h = Max(1, mip_h / 2);
+		mip_w = Max(1U, mip_w / 2U);
+		mip_h = Max(1U, mip_h / 2U);
 	}
 
 	// Allocate staging mipchain and copy level 0 into it
@@ -181,8 +183,8 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 		uint32_t mip_w = texture.width, mip_h = texture.height;
 		uint32_t mip_offset = mip_w * mip_h * c;
 		for (uint32_t i = 1; i < texture.num_levels; i++) {
-			mip_w = Max(1, mip_w / 2);
-			mip_h = Max(1, mip_h / 2);
+			mip_w = Max(1U, mip_w / 2U);
+			mip_h = Max(1U, mip_h / 2U);
 			texture.levels[i].width  = mip_w;
 			texture.levels[i].height = mip_h;
 			uint8_t* level_data = &mipchain[mip_offset];
@@ -213,4 +215,15 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 	free(mipchain);
 
 	return &texture;
+}
+
+Sampler* GetSampler(const SamplerParams& params) {
+	uint64_t hash = Hash64(&params, sizeof(params));
+	Sampler& sampler = SamplerLoader_Cache[hash];
+	if (sampler.gl_sampler) { return &sampler; }
+
+	sampler.params = params;
+	UploadSampler(sampler);
+
+	return &sampler;
 }
