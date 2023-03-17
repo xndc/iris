@@ -4,8 +4,8 @@
 #include "base/debug.hh"
 #include "base/math.hh"
 
-struct Scene;
 struct Mesh;
+struct Material;
 
 struct Transform {
 	vec3 position = vec3(0);
@@ -162,6 +162,12 @@ struct PointLight : GameObject {
 
 struct MeshInstance : GameObject {
 	MeshInstance(): GameObject{MESH_INSTANCE} {}
-	MeshInstance(Mesh* mesh): MeshInstance{} { this->mesh = mesh; }
+
 	Mesh* mesh;
+	Material* material;
+
+	MeshInstance(Mesh* mesh, Material* material): MeshInstance{} {
+		this->mesh = mesh;
+		this->material = material;
+	}
 };

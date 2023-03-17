@@ -167,6 +167,23 @@ struct String {
 		if (capacity != 0) { free((void*)(cstr)); }
 	}
 
-	// Stops this string from getting deallocated if it goes out of scope.
-	FORCEINLINE String& leak() { const_cast<uint32_t&>(capacity) = 0; return *this; }
+	// Stops this string from getting deallocated if it goes out of scope. If the String doesn't
+	// have ownership of its buffer, this function will duplicate it into a new one.
+	FORCEINLINE String& leak() {
+		if (capacity == 0) { *this = String::copy(*this); }
+		const_cast<uint32_t&>(capacity) = 0;
+		return *this;
+	}
+
+	// Stops this string from getting deallocated if it goes out of scope, and return a writable
+	// pointer into the string's now-owned buffer. If the String doesn't have ownership of its
+	// buffer, this function will duplicate it into a new one.
+	FORCEINLINE char* leak_mut() {
+		if (capacity == 0) { *this = String::copy(*this); }
+		const_cast<uint32_t&>(capacity) = 0;
+		// Invalidate the size so it gets recomputed after the caller is done with this char*.
+		// FIXME: This isn't exactly robust. Should we have an RAII wrapper for the mutable string?
+		const_cast<uint32_t&>(_size) = 0;
+		return const_cast<char*>(cstr);
+	}
 };

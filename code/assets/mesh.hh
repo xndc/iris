@@ -3,21 +3,7 @@
 #include "base/debug.hh"
 #include "base/math.hh"
 #include "graphics/opengl.hh"
-
-struct BufferUsage {
-	enum Enum : uint8_t {
-		Vertex,
-		Index,
-	} v;
-	FORCEINLINE constexpr BufferUsage(uint8_t v = 0) : v{Enum(v)} {};
-
-	FORCEINLINE constexpr GLenum GLTarget() const {
-		switch (v) {
-			case BufferUsage::Vertex: return GL_ARRAY_BUFFER;
-			case BufferUsage::Index: return GL_ELEMENT_ARRAY_BUFFER;
-		} Unreachable();
-	}
-};
+#include "graphics/defaults.hh"
 
 struct ElementType {
 	enum Enum : uint8_t {
@@ -32,7 +18,7 @@ struct ElementType {
 	} v;
 	FORCEINLINE constexpr ElementType(uint8_t v = 0) : v{Enum(v)} {};
 
-	constexpr uint8_t Components() const {
+	constexpr uint8_t components() const {
 		switch (v) {
 			case SCALAR: return 1;
 			case VEC2:   return 2;
@@ -44,7 +30,7 @@ struct ElementType {
 			case Count:  Unreachable();
 		} Unreachable();
 	}
-	constexpr const char* GLTFType() const {
+	constexpr const char* gltf_type() const {
 		switch (v) {
 			case SCALAR: return "SCALAR";
 			case VEC2:   return "VEC2";
@@ -56,9 +42,9 @@ struct ElementType {
 			case Count:  Unreachable();
 		}; Unreachable();
 	}
-	static ElementType FromGLTFType(const char* gltf) {
+	static ElementType from_gltf_type(const char* gltf) {
 		for (uint8_t i = 0; i < Count; i++) {
-			if (strcmp(gltf, ElementType(i).GLTFType()) == 0) {
+			if (strcmp(gltf, ElementType(i).gltf_type()) == 0) {
 				return ElementType(i);
 			}
 		}
@@ -80,7 +66,7 @@ struct ComponentType {
 	} v;
 	FORCEINLINE constexpr ComponentType(uint8_t v = 0) : v{Enum(v)} {};
 
-	constexpr uint8_t BytesPerComponent() const {
+	constexpr uint8_t bytes() const {
 		switch (v) {
 			case I8:  return 1;
 			case U8:  return 1;
@@ -92,7 +78,7 @@ struct ComponentType {
 			case Count: Unreachable();
 		} Unreachable();
 	}
-	constexpr GLenum GLEnum() const {
+	constexpr GLenum gl_enum() const {
 		switch (v) {
 			case I8:  return GL_BYTE;
 			case U8:  return GL_UNSIGNED_BYTE;
@@ -104,7 +90,7 @@ struct ComponentType {
 			case Count: Unreachable();
 		} Unreachable();
 	}
-	constexpr const char* Name() const {
+	constexpr const char* name() const {
 		switch (v) {
 			case I8:  return "I8";
 			case U8:  return "U8";
@@ -116,9 +102,9 @@ struct ComponentType {
 			case Count: Unreachable();
 		} Unreachable();
 	}
-	static constexpr ComponentType FromGLEnum(GLenum gl) {
+	static constexpr ComponentType from_gl_enum(GLenum gl) {
 		for (uint8_t i = 0; i < Count; i++) {
-			if (gl == ComponentType(i).GLEnum()) {
+			if (gl == ComponentType(i).gl_enum()) {
 				return ComponentType(i);
 			}
 		}
@@ -136,7 +122,7 @@ struct PrimitiveType {
 	} v;
 	FORCEINLINE constexpr PrimitiveType(uint8_t v = 0) : v{Enum(v)} {};
 
-	uint8_t Vertices() const {
+	constexpr uint8_t vertices() const {
 		switch (v) {
 			case POINTS:    return 1;
 			case LINES:     return 2;
@@ -145,7 +131,7 @@ struct PrimitiveType {
 			case Count:     Unreachable();
 		} Unreachable();
 	}
-	uint8_t Stride() const {
+	constexpr uint8_t stride() const {
 		switch (v) {
 			case POINTS:    return 1;
 			case LINES:     return 2;
@@ -154,7 +140,7 @@ struct PrimitiveType {
 			case Count:     Unreachable();
 		} Unreachable();
 	}
-	ElementType ElementType() const {
+	constexpr ElementType element_type() const {
 		switch (v) {
 			case POINTS:    return ElementType::SCALAR;
 			case LINES:     return ElementType::VEC2;
@@ -163,7 +149,16 @@ struct PrimitiveType {
 			case Count:     Unreachable();
 		} Unreachable();
 	}
-	GLenum GLEnum() const {
+	constexpr const char* name() const {
+		switch (v) {
+			case POINTS:    return "POINTS";
+			case LINES:     return "LINES";
+			case TRIANGLES: return "TRIANGLES";
+			case TRI_STRIP: return "TRI_STRIP";
+			case Count:     Unreachable();
+		} Unreachable();
+	}
+	constexpr GLenum gl_enum() const {
 		switch (v) {
 			case POINTS:    return GL_POINTS;
 			case LINES:     return GL_LINES;
@@ -172,9 +167,9 @@ struct PrimitiveType {
 			case Count:     Unreachable();
 		} Unreachable();
 	}
-	static constexpr PrimitiveType FromGLEnum(GLenum gl) {
+	static constexpr PrimitiveType from_gl_enum(GLenum gl) {
 		for (uint8_t i = 0; i < Count; i++) {
-			if (gl == PrimitiveType(i).GLEnum()) {
+			if (gl == PrimitiveType(i).gl_enum()) {
 				return PrimitiveType(i);
 			}
 		}
@@ -182,59 +177,61 @@ struct PrimitiveType {
 	}
 };
 
-struct Buffer {
-	enum UsageFlags : uint8_t {
+struct BufferUsage {
+	enum Enum : uint8_t {
+		// This buffer is unused or its usage type is not known yet.
+		Unknown,
 		// This buffer is intended for vertex data and will be bound to GL_ARRAY_BUFFER.
-		USAGE_VERTEX_BUFFER = (1 << 0),
+		Vertex,
 		// This buffer is intended for indices and will be bound to GL_ELEMENT_ARRAY_BUFFER.
-		USAGE_INDEX_BUFFER  = (1 << 1),
-	};
+		Index,
+	} v;
+	FORCEINLINE constexpr BufferUsage(uint8_t v = 0) : v{Enum(v)} {};
 
-	// Flags indicating what this buffer is intended for.
-	UsageFlags usage;
-
-	// What kind of elements the buffer contains. Can be SCALAR, VEC3, MAT4X4 and so on.
-	ElementType etype;
-
-	// What kind of components each element in the buffer contains. Can be U8, U32, F32 and so on.
-	ComponentType ctype;
-
-	// How many elements the buffer contains.
-	uint32_t elements;
-
-	// Block of CPU-side memory for this buffer, if one exists.
-	uint8_t* cpu_buffer = nullptr;
-
-	// OpenGL handle for this buffer's GPU-side copy, if one exists.
-	GLuint gpu_handle = 0;
-
-	// Has this buffer been uploaded to the GPU?
-	bool loaded = false;
-
-	// Compute the total number of components this buffer contains.
-	FORCEINLINE constexpr uint32_t Components() const { return elements * etype.Components(); }
-
-	// Compute the total size of this buffer in bytes.
-	FORCEINLINE constexpr uint32_t Size() const { return Components() * ctype.BytesPerComponent(); }
-
-	// Get the OpenGL target that this buffer can be bound to.
-	FORCEINLINE constexpr GLenum GLTarget() const {
-		switch (usage & (USAGE_VERTEX_BUFFER | USAGE_INDEX_BUFFER)) {
-			case USAGE_VERTEX_BUFFER: return GL_ARRAY_BUFFER;
-			case USAGE_INDEX_BUFFER: return GL_ELEMENT_ARRAY_BUFFER;
+	FORCEINLINE constexpr GLenum gl_target() const {
+		switch (v) {
+			case BufferUsage::Unknown: return GL_ARRAY_BUFFER;
+			case BufferUsage::Vertex: return GL_ARRAY_BUFFER;
+			case BufferUsage::Index: return GL_ELEMENT_ARRAY_BUFFER;
 		} Unreachable();
 	}
 };
 
+struct Buffer {
+	BufferUsage usage = BufferUsage::Unknown;
+	uint32_t size = 0;
+	// Block of CPU-side memory for this buffer, if one exists.
+	uint8_t* cpu_buffer = nullptr;
+	// OpenGL handle for this buffer's GPU-side copy, if one exists.
+	GLuint gpu_handle = 0;
+	// Has this buffer been uploaded to the GPU? (Not the same thing as gpu_handle != 0)
+	bool loaded = false;
+};
+
+struct BufferView {
+	Buffer* buffer;
+	ElementType etype;
+	ComponentType ctype;
+	uint32_t elements;
+	// Offset into buffer at which this BufferView starts, in bytes.
+	uint32_t offset = 0;
+
+	FORCEINLINE constexpr BufferView() {}
+	FORCEINLINE constexpr BufferView(Buffer* buffer, ElementType etype, ComponentType ctype, uint32_t elements):
+		buffer{buffer}, etype{etype}, ctype{ctype}, elements{elements} {}
+
+	FORCEINLINE constexpr uint32_t components() const { return elements * etype.components(); }
+	FORCEINLINE constexpr uint32_t size() const { return components() * ctype.bytes(); }
+};
+
 struct Mesh {
-	// What kind of primitive the mesh is comprised of. Can be TRIANGLES, TRI_STRIP and so on.
 	PrimitiveType ptype;
 
-	// Vertex and index buffers.
-	Buffer vertex;
-	Buffer index;
+	static constexpr size_t MaxVertexAttribs = CountOf(DefaultAttributes::all);
+	// One BufferView, which may be pointing to a valid or null buffer, for each vertex attribute.
+	BufferView vertex_attribs [MaxVertexAttribs];
 
-	// OpenGL Vertex Array Object for this mesh.
+	BufferView index_buffer;
 	GLuint gl_vertex_array = 0;
 
 	// Axis-aligned bounding box for this mesh. Assumed not to exist if half-extents are all zero.

@@ -7,17 +7,19 @@ namespace DefaultAttributes {
 	struct Item {
 		GLuint index;
 		const char* name;
-		constexpr Item(GLuint index, const char* name) : index{index}, name{name} {}
+		const char* gltf_name;
+		constexpr Item(GLuint index, const char* name, const char* gltf_name):
+			index{index}, name{name}, gltf_name{gltf_name} {}
 	};
 
-	static constexpr Item Position  = {0, "Position"};
-	static constexpr Item Normal    = {1, "Normal"};
-	static constexpr Item Tangent   = {2, "Tangent"};
-	static constexpr Item Texcoord0 = {3, "Texcoord0"};
-	static constexpr Item Texcoord1 = {4, "Texcoord1"};
-	static constexpr Item Color     = {5, "Color"};
-	static constexpr Item Joints    = {6, "Joints"};
-	static constexpr Item Weights   = {7, "Weights"};
+	static constexpr Item Position  = {0, "Position",  "POSITION"};
+	static constexpr Item Normal    = {1, "Normal",    "NORMAL"};
+	static constexpr Item Tangent   = {2, "Tangent",   "TANGENT"};
+	static constexpr Item Texcoord0 = {3, "Texcoord0", "TEXCOORD_0"};
+	static constexpr Item Texcoord1 = {4, "Texcoord1", "TEXCOORD_1"};
+	static constexpr Item Color     = {5, "Color",     "COLOR_0"};
+	static constexpr Item Joints    = {6, "Joints",    "JOINTS_0"};
+	static constexpr Item Weights   = {7, "Weights",   "WEIGHTS_0"};
 
 	static constexpr Item all[] = {
 		Position, Normal, Tangent, Texcoord0, Texcoord1, Color, Joints, Weights
