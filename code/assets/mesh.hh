@@ -68,7 +68,7 @@ struct ElementType {
 
 
 struct ComponentType {
-	enum Enum {
+	enum Enum : uint8_t {
 		I8,
 		U8,
 		I16,

@@ -69,10 +69,3 @@ namespace DefaultSamplers {
 
 // Allocates or returns a previously allocated Sampler for the given parameters.
 Sampler* GetSampler(const SamplerParams& params);
-
-// Represents a Texture paired with a Sampler. This is what you would store in a Material.
-struct TextureSampler {
-	Texture* texture;
-	Sampler* sampler;
-	TextureSampler(Texture* texture, Sampler* sampler) : texture{texture}, sampler{sampler} {}
-};

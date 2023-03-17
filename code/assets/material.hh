@@ -1,11 +1,15 @@
 #pragma once
 #include "graphics/opengl.hh"
+#include "assets/texture.hh"
+#include "assets/mesh.hh"
 
-struct Shader;
-struct Sampler;
-struct Uniform;
+enum class MaterialType : uint8_t {
+	// The material writes albedo, normal and occlusion/roughness/metallic values to a G-Buffer.
+	// Used for opaque surfaces following the PBR metallic-roughness model.
+	GeometryDeferredORM,
+};
 
-enum class BlendMode {
+enum class BlendMode : uint8_t {
 	// The material will be 100% opaque at every point on any surface that uses it.
 	Opaque,
 	// The material will be rendered with stippling, i.e. fragments with alpha values between two
@@ -18,7 +22,85 @@ enum class BlendMode {
 	Transparent,
 };
 
+struct UniformValue {
+	union {
+		union {
+			int8_t   i8;
+			uint8_t  u8;
+			int16_t  i16;
+			uint16_t u16;
+			int32_t  i32;
+			uint32_t u32;
+			float    f32;
+		} scalar;
+		union {
+			glm::i8vec2  i8;
+			glm::u8vec2  u8;
+			glm::i16vec2 i16;
+			glm::u16vec2 u16;
+			glm::ivec2   i32;
+			glm::uvec2   u32;
+			glm::vec2    f32;
+		} vec2;
+		union {
+			glm::i8vec3  i8;
+			glm::u8vec3  u8;
+			glm::i16vec3 i16;
+			glm::u16vec3 u16;
+			glm::ivec3   i32;
+			glm::uvec3   u32;
+			glm::vec3    f32;
+		} vec3;
+		union {
+			glm::i8vec4  i8;
+			glm::u8vec4  u8;
+			glm::i16vec4 i16;
+			glm::u16vec4 u16;
+			glm::ivec4   i32;
+			glm::uvec4   u32;
+			glm::vec4    f32;
+		} vec4;
+		union {
+			glm::i8mat2x2  i8;
+			glm::u8mat2x2  u8;
+			glm::i16mat2x2 i16;
+			glm::u16mat2x2 u16;
+			glm::imat2x2   i32;
+			glm::umat2x2   u32;
+			glm::mat2      f32;
+		} mat2x2;
+		union {
+			glm::i8mat3x3  i8;
+			glm::u8mat3x3  u8;
+			glm::i16mat3x3 i16;
+			glm::u16mat3x3 u16;
+			glm::imat3x3   i32;
+			glm::umat3x3   u32;
+			glm::mat3      f32;
+		} mat3x3;
+		union {
+			glm::i8mat4x4  i8;
+			glm::u8mat4x4  u8;
+			glm::i16mat4x4 i16;
+			glm::u16mat4x4 u16;
+			glm::imat4x4   i32;
+			glm::umat4x4   u32;
+			glm::mat4      f32;
+		} mat4x4;
+	};
+	const char* name = nullptr;
+	ElementType etype;
+	ComponentType ctype;
+};
+
+struct SamplerBinding {
+	const char* name = nullptr;
+	Texture* texture = nullptr;
+	Sampler* sampler = nullptr;
+};
+
 struct Material {
+	MaterialType type = MaterialType::GeometryDeferredORM;
 	BlendMode blend_mode = BlendMode::Opaque;
 
 	// Blend source factor. This is a term in the blending equation corresponding to this material's
@@ -59,12 +141,11 @@ struct Material {
 	// We probably want this to be disabled for light volumes and transparent objects.
 	bool depth_write : 1 = true;
 
-	Shader* vertex_shader;
-	Shader* fragment_shader;
-
 	constexpr static size_t MaxUniforms = 16;
-	Uniform* uniforms [MaxUniforms];
+	UniformValue uniforms [MaxUniforms] = {};
+	uint32_t num_uniforms = 0;
 
 	constexpr static size_t MaxSamplers = 16;
-	Sampler* samplers [MaxSamplers];
+	SamplerBinding samplers [MaxSamplers] = {};
+	uint32_t num_samplers = 0;
 };

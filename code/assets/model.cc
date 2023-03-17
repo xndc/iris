@@ -8,6 +8,7 @@
 
 #include "base/debug.hh"
 #include "base/filesystem.hh"
+#include "graphics/defaults.hh"
 
 static bool ModelLoader_Initialised = false;
 std::unordered_map<uint64_t, Model> ModelLoader_Cache = {};
@@ -181,91 +182,121 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 		}
 	}
 
-#if 0
-
 	// Extract materials:
 	JSON_Array* jmaterials = json_object_get_array(root, "materials");
-	size_t materialCount   = json_array_get_count(jmaterials);
-	Material* materials    = Alloc(materialCount, Material);
-	for (size_t imat = 0; imat < materialCount; imat++) {
-		Material* m = &materials[imat];
-		InitMaterial(m);
+	auto materials = std::vector<Material>(json_array_get_count(jmaterials));
+	for (uint32_t imat = 0; imat < json_array_get_count(jmaterials); imat++) {
+		Material& m = materials[imat];
 		JSON_Object* jmat = json_array_get_object(jmaterials, imat);
-		JSON_Object* jmr = json_object_get_object(jmat, "pbrMetallicRoughness");
-		// Extract material factors:
-		JSON_Array* jdiffusefac = json_object_get_array(jmr, "baseColorFactor");
-		if (jdiffusefac) {
-			m->const_diffuse[0] = (float) json_array_get_number(jdiffusefac, 0);
-			m->const_diffuse[1] = (float) json_array_get_number(jdiffusefac, 1);
-			m->const_diffuse[2] = (float) json_array_get_number(jdiffusefac, 2);
-			m->const_diffuse[3] = (float) json_array_get_number(jdiffusefac, 3);
-		}
-		if (json_object_has_value(jmr, "metallicFactor")) {
-			m->const_metallic = (float) json_object_get_number(jmr, "metallicFactor");
-		}
-		if (json_object_has_value(jmr, "roughnessFactor")) {
-			m->const_roughness = (float) json_object_get_number(jmr, "roughnessFactor");
-		}
-		// Extract material textures:
-		JSON_Object* jdiffusetex = json_object_get_object(jmr, "baseColorTexture");
-		JSON_Object* jmetrghtex  = json_object_get_object(jmr, "metallicRoughnessTexture");
-		JSON_Object* jnormaltex  = json_object_get_object(jmat, "normalTexture");
-		JSON_Object* jocctex     = json_object_get_object(jmat, "occlusionTexture");
-		if (jdiffusetex) {
-			int itex = (int) json_object_get_number(jdiffusetex, "index");
-			JSON_Object* jtex = json_array_get_object(jtextures, itex);
-			if (jtex && json_object_has_value(jtex, "source") && json_object_has_value(jtex, "sampler")) {
-				int iimg = (int) json_object_get_number(jtex, "source");
-				int ismp = (int) json_object_get_number(jtex, "sampler");
-				m->tex_diffuse = textures[iimg];
-				m->smp_diffuse = samplers[ismp];
-			}
-		}
-		if (jmetrghtex) {
-			int itex = (int) json_object_get_number(jmetrghtex, "index");
-			JSON_Object* jtex = json_array_get_object(jtextures, itex);
-			if (jtex && json_object_has_value(jtex, "source") && json_object_has_value(jtex, "sampler")) {
-				int iimg = (int) json_object_get_number(jtex, "source");
-				int ismp = (int) json_object_get_number(jtex, "sampler");
-				m->tex_occ_rgh_met = textures[iimg];
-				m->smp_occ_rgh_met = samplers[ismp];
-			}
-		}
+
+		// Base material properties:
+		JSON_Object* jnormaltex = json_object_get_object(jmat, "normalTexture");
 		if (jnormaltex) {
 			int itex = (int) json_object_get_number(jnormaltex, "index");
 			JSON_Object* jtex = json_array_get_object(jtextures, itex);
 			if (jtex && json_object_has_value(jtex, "source") && json_object_has_value(jtex, "sampler")) {
-				int iimg = (int) json_object_get_number(jtex, "source");
-				int ismp = (int) json_object_get_number(jtex, "sampler");
-				m->tex_normal = textures[iimg];
-				m->smp_normal = samplers[ismp];
+				SamplerBinding& normal = m.samplers[m.num_samplers++];
+				normal.name = DefaultUniforms::TexNormal.name;
+				normal.texture = textures[uint32_t(json_object_get_number(jtex, "source"))];
+				normal.sampler = samplers[uint32_t(json_object_get_number(jtex, "sampler"))];
+				LOG_F(INFO, "-> material=%u %s gltex=%u", imat, normal.name, normal.texture->gl_texture);
 			}
 		}
+		JSON_Object* jocctex = json_object_get_object(jmat, "occlusionTexture");
 		if (jocctex) {
 			int itex = (int) json_object_get_number(jocctex, "index");
 			JSON_Object* jtex = json_array_get_object(jtextures, itex);
 			if (jtex && json_object_has_value(jtex, "source") && json_object_has_value(jtex, "sampler")) {
-				int iimg = (int) json_object_get_number(jtex, "source");
-				int ismp = (int) json_object_get_number(jtex, "sampler");
-				m->tex_occlusion = textures[iimg];
-				m->smp_occlusion = samplers[ismp];
+				SamplerBinding& occlusion = m.samplers[m.num_samplers++];
+				occlusion.name = DefaultUniforms::TexOcclusion.name;
+				occlusion.texture = textures[uint32_t(json_object_get_number(jtex, "source"))];
+				occlusion.sampler = samplers[uint32_t(json_object_get_number(jtex, "sampler"))];
+				LOG_F(INFO, "-> material=%u %s gltex=%u", imat, occlusion.name, occlusion.texture->gl_texture);
 			}
 		}
-		// Extract alpha mode: (default is OPAQUE, i.e. no blending or stippling)
-		const char* jalphamode = json_object_get_string(jmat, "alphaMode");
+		switch (Hash64(json_object_get_string(jmat, "alphaMode"))) {
+			case Hash64("MASK"):  m.blend_mode = BlendMode::Stippled;    break;
+			case Hash64("BLEND"): m.blend_mode = BlendMode::Transparent; break;
+			default: m.blend_mode = BlendMode::Opaque;
+		}
+		if (json_object_get_string(jmat, "alphaMode")) {
+			LOG_F(INFO, "-> material=%u alpha-mode=%s", imat, json_object_get_string(jmat, "alphaMode"));
+		}
 		if (json_object_has_value(jmat, "alphaCutoff")) {
-			float jalphacutoff = (float) json_object_get_number(jmat, "alphaCutoff");
-			m->stipple_hard_cutoff = jalphacutoff;
-			m->stipple_soft_cutoff = jalphacutoff;
+			m.stipple_hard_cutoff = float(json_object_get_number(jmat, "alphaCutoff"));
+			m.stipple_soft_cutoff = m.stipple_hard_cutoff;
+			LOG_F(INFO, "-> material=%u stipple-cutoff=%.02f", imat, m.stipple_hard_cutoff);
 		}
-		if (jalphamode) {
-			if      (strcmp(jalphamode, "MASK")  == 0) { m->stipple = true; }
-			else if (strcmp(jalphamode, "BLEND") == 0) { m->blend   = true; }
+		if (json_object_get_boolean(jmat, "doubleSided")) {
+			m.face_culling_mode = GL_NONE;
+			LOG_F(INFO, "-> material=%u is double-sided", imat);
 		}
-		// Extract cull mode:
-		bool jdoublesided = json_object_get_boolean(jmat, "doubleSided");
-		if (jdoublesided) { m->cull = false; }
+
+		// PBR metallic-roughness material properties:
+		JSON_Object* jmr = json_object_get_object(jmat, "pbrMetallicRoughness");
+		if (jmr) {
+			JSON_Array* jbaseColorFactor = json_object_get_array(jmr, "baseColorFactor");
+			if (jbaseColorFactor) {
+				UniformValue& const_albedo = m.uniforms[m.num_uniforms++];
+				const_albedo.name = DefaultUniforms::ConstAlbedo.name;
+				const_albedo.etype = ElementType::VEC4;
+				const_albedo.ctype = ComponentType::F32;
+				const_albedo.vec4.f32.r = float(json_array_get_number(jbaseColorFactor, 0));
+				const_albedo.vec4.f32.g = float(json_array_get_number(jbaseColorFactor, 1));
+				const_albedo.vec4.f32.b = float(json_array_get_number(jbaseColorFactor, 2));
+				const_albedo.vec4.f32.a = float(json_array_get_number(jbaseColorFactor, 3));
+				LOG_F(INFO, "-> material=%u %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_albedo.name,
+					const_albedo.vec4.f32.r, const_albedo.vec4.f32.g,
+					const_albedo.vec4.f32.b, const_albedo.vec4.f32.a);
+			}
+			if (json_object_has_value(jmr, "metallicFactor")) {
+				UniformValue& const_metallic = m.uniforms[m.num_uniforms++];
+				const_metallic.name = DefaultUniforms::ConstMetallic.name;
+				const_metallic.etype = ElementType::SCALAR;
+				const_metallic.ctype = ComponentType::F32;
+				const_metallic.scalar.f32 = float(json_object_get_number(jmr, "metallicFactor"));
+				LOG_F(INFO, "-> material=%u %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_metallic.name,
+					const_metallic.vec4.f32.r, const_metallic.vec4.f32.g,
+					const_metallic.vec4.f32.b, const_metallic.vec4.f32.a);
+			}
+			if (json_object_has_value(jmr, "roughnessFactor")) {
+				UniformValue& const_roughness = m.uniforms[m.num_uniforms++];
+				const_roughness.name = DefaultUniforms::ConstRoughness.name;
+				const_roughness.etype = ElementType::SCALAR;
+				const_roughness.ctype = ComponentType::F32;
+				const_roughness.scalar.f32 = float(json_object_get_number(jmr, "roughnessFactor"));
+				LOG_F(INFO, "-> material=%u %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_roughness.name,
+					const_roughness.vec4.f32.r, const_roughness.vec4.f32.g,
+					const_roughness.vec4.f32.b, const_roughness.vec4.f32.a);
+			}
+			JSON_Object* jbaseColorTexture = json_object_get_object(jmr, "baseColorTexture");
+			if (jbaseColorTexture) {
+				int itex = (int) json_object_get_number(jbaseColorTexture, "index");
+				JSON_Object* jtex = json_array_get_object(jtextures, itex);
+				if (jtex && json_object_has_value(jtex, "source") && json_object_has_value(jtex, "sampler")) {
+					SamplerBinding& albedo = m.samplers[m.num_samplers++];
+					albedo.name = DefaultUniforms::TexAlbedo.name;
+					albedo.texture = textures[uint32_t(json_object_get_number(jtex, "source"))];
+					albedo.sampler = samplers[uint32_t(json_object_get_number(jtex, "sampler"))];
+					LOG_F(INFO, "-> material=%u %s gltex=%u", imat, albedo.name, albedo.texture->gl_texture);
+				}
+			}
+			JSON_Object* jmetallicRoughnessTexture = json_object_get_object(jmr, "metallicRoughnessTexture");
+			if (jmetallicRoughnessTexture) {
+				int itex = (int) json_object_get_number(jmetallicRoughnessTexture, "index");
+				JSON_Object* jtex = json_array_get_object(jtextures, itex);
+				if (jtex && json_object_has_value(jtex, "source") && json_object_has_value(jtex, "sampler")) {
+					SamplerBinding& rm = m.samplers[m.num_samplers++];
+					rm.name = DefaultUniforms::TexOccRghMet.name;
+					rm.texture = textures[uint32_t(json_object_get_number(jtex, "source"))];
+					rm.sampler = samplers[uint32_t(json_object_get_number(jtex, "sampler"))];
+					LOG_F(INFO, "-> material=%u %s gltex=%u", imat, rm.name, rm.texture->gl_texture);
+				}
+			}
+		}
 	}
+
+#if 0
 
 	// Extract nodes and count meshes (GLTF primitives):
 	JSON_Array* jnodes  = json_object_get_array(root, "nodes");
