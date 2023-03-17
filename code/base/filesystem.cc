@@ -16,9 +16,9 @@ String PathJoin(const String& a, const String& b) {
 	// Copy a and b into a newly allocated String
 	uint32_t size = asize + sep_chars + bsize;
 	String path = String(size);
-	memcpy(&path.mut()[0], a.cstr, asize);
+	if (a) { memcpy(&path.mut()[0], a.cstr, asize); }
 	if (sep_chars) { path.mut()[asize] = native_sep; }
-	memcpy(&path.mut()[asize + sep_chars], b.cstr, bsize);
+	if (b) { memcpy(&path.mut()[asize + sep_chars], b.cstr, bsize); }
 	path.mut()[size] = '\0';
 	// Rewrite string to get rid of mixed separators
 	for (char& c : path) { if (c == foreign_sep) { c = native_sep; } }

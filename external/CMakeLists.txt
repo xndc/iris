@@ -46,3 +46,9 @@ FetchContent_Populate(cmake_checks_cache
 	GIT_REPOSITORY https://github.com/cristianadam/cmake-checks-cache.git
 	GIT_TAG fa345a9dbdf7dc4a6b27d6b6e5113ab38d0b9db9 # (4 Mar 2022)
 	GIT_SHALLOW YES)
+
+FetchContent_Populate(parson
+	SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/parson"
+	GIT_REPOSITORY https://github.com/kgabis/parson
+	GIT_TAG 3c4ee26dbb3df177a2d7b9d80e154ec435ca8c01 # 1.5.1 (15 Feb 2023)
+	GIT_SHALLOW YES)

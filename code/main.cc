@@ -78,6 +78,7 @@ static void loop(void) {
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	Texture* tex = GetTexture("data/models/Duck/DuckCM.png", true);
+	Model* duck = GetModelFromGLTF("data/models/Duck/Duck.gltf");
 
 	SDL_GL_SwapWindow(window);
 }

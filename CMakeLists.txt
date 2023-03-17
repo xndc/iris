@@ -158,6 +158,10 @@ add_library(sqlite STATIC "external/sqlite/sqlite3.c")
 target_include_directories(sqlite INTERFACE "external/sqlite")
 target_link_libraries(Main PRIVATE sqlite)
 
+add_library(parson STATIC "external/parson/parson.c")
+target_include_directories(parson INTERFACE "external/parson")
+target_link_libraries(Main PRIVATE parson)
+
 # **************************************************************************************************
 # IDE convenience features:
 

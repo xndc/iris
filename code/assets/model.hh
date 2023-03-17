@@ -4,6 +4,7 @@
 
 #include "base/base.hh"
 #include "base/string.hh"
+#include "base/hash.hh"
 #include "assets/texture.hh"
 #include "assets/mesh.hh"
 #include "assets/material.hh"
@@ -20,3 +21,9 @@ struct Model {
 	};
 	std::vector<MeshRecord> meshes;
 };
+
+Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path);
+
+static FORCEINLINE Model* GetModelFromGLTF(const char* source_path) {
+	return GetModelFromGLTF(Hash64(source_path), source_path);
+}
