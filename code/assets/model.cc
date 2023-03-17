@@ -64,10 +64,9 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 		const char* uri = json_object_get_string(jbuf, "uri");
 		size_t size = (size_t) json_object_get_number(jbuf, "byteLength");
 		if (uri && size) {
-			// TODO: We should probably make this work with URIs like "../x.png" too.
-			String source_path = String::format("%s/%s", gltf_directory.cstr, uri);
+			String src = String::format("%s/%s", gltf_directory.cstr, uri);
 			buffer_sizes[ibuf] = size;
-			buffer_datas[ibuf] = (uint8_t*)(ReadFile(source_path).leak().cstr);
+			buffer_datas[ibuf] = (uint8_t*)(ReadFile(src).leak().cstr);
 		}
 		if (!buffer_datas[ibuf]) {
 			buffer_sizes[ibuf] = 0;
@@ -96,7 +95,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 		uint32_t ibuf      = (uint32_t) json_object_get_number(jbv, "buffer");
 		uint32_t joffset2  = (uint32_t) json_object_get_number(jbv, "byteOffset"); // default 0
 		// Probably don't need to read byteStride, since we can infer it from etype/ctype?
-		// Create Buffer:
+		// Set up and and stage buffer:
 		buffers[iacc].etype = ElementType::FromGLTFType(jtype);
 		buffers[iacc].ctype = ComponentType::FromGLEnum(jcomptype);
 		buffers[iacc].elements = jcount;
@@ -153,44 +152,36 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 			samplers[ismp]->gl_sampler);
 	}
 
-#if 0
-
-	// Extract textures (i.e. GLTF images):
+	// Create Texture objects from GLTF images:
 	JSON_Array* jimages = json_object_get_array(root, "images");
 	JSON_Array* jtextures = json_object_get_array(root, "textures");
-	size_t textureCount = json_array_get_count(jimages);
-	size_t gltfTextureCount = json_array_get_count(jtextures);
-	TextureHandle** textures = Alloc(textureCount, TextureHandle*);
-	// Queue textures for read and upload:
-	for (size_t iimg = 0; iimg < textureCount; iimg++) {
+	auto textures = std::vector<Texture*>(json_array_get_count(jimages));
+	for (uint32_t iimg = 0; iimg < json_array_get_count(jimages); iimg++) {
 		JSON_Object* jimg = json_array_get_object(jimages, iimg);
-		// Determine whether or not the texture needs mipmaps:
-		bool needsMips = false;
-		for (size_t itex = 0; itex < gltfTextureCount; itex++) {
+
+		bool texture_needs_mips = false;
+		for (uint32_t itex = 0; itex < json_array_get_count(jtextures); itex++) {
 			JSON_Object* jtex = json_array_get_object(jtextures, itex);
-			if (json_object_has_value(jtex, "source") && json_object_has_value(jtex, "sampler")) {
-				if ((int) json_object_get_number(jtex, "source") == iimg) {
-					int ismp = (int) json_object_get_number(jtex, "sampler");
-					if (samplerNeedsMips[ismp]) {
-						needsMips = true;
-						break;
-					}
-				}
+			if (json_object_has_value(jtex, "source") && json_object_has_value(jtex, "sampler") &&
+				uint32_t(json_object_get_number(jtex, "source")) == iimg)
+			{
+				uint32_t ismp = uint32_t(json_object_get_number(jtex, "sampler"));
+				if (sampler_needs_mips[ismp]) { texture_needs_mips = true; break; }
 			}
 		}
-		// Queue texture:
+
 		const char* uri = json_object_get_string(jimg, "uri");
 		if (uri) {
-			// TODO: We should probably make this work with URIs like "../x.png" too.
-			stbsp_snprintf(source_path, countof(source_path), "%s/%s", gltfDirectory, uri);
-			// glGenTextures(1, &textures[iimg]);
-			// LoadTextureFromDisk(textures[iimg], source_path, needsMips);
-			textures[iimg] = QueueTextureLoad(source_path, needsMips);
+			String src = String::format("%s/%s", gltf_directory.cstr, uri);
+			textures[iimg] = GetTexture(src, texture_needs_mips);
+			LOG_F(INFO, "-> img=%u %ux%u levels=%u gl=%u %s", iimg, textures[iimg]->width, textures[iimg]->height,
+				textures[iimg]->num_levels, textures[iimg]->gl_texture, uri);
 		} else {
-			// TODO: Support reading images from buffers.
-			LOG_F(WARNING, "GLTF images stored in buffers are not supported; unable to load image %ju from model", iimg);
+			LOG_F(WARNING, "Unable to load image %u (images stored in buffers not supported)", iimg);
 		}
 	}
+
+#if 0
 
 	// Extract materials:
 	JSON_Array* jmaterials = json_object_get_array(root, "materials");
