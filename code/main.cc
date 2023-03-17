@@ -8,6 +8,10 @@
 #include "base/filesystem.hh"
 #include "graphics/opengl.hh"
 #include "scene/gameobject.hh"
+#include "assets/asset_loader.hh"
+#include "assets/texture.hh"
+#include "assets/model.hh"
+#include "assets/shader.hh"
 
 #if PLATFORM_WEB
 #include <emscripten.h>
@@ -31,55 +35,10 @@ SDLMAIN_DECLSPEC int main(int argc, char* argv[]) {
 	gl_context = GLCreateContext(window);
 	GLMakeContextCurrent(window, gl_context);
 
+	InitAssetLoader();
+
 	if (SDL_GL_SetSwapInterval(-1) == -1) {
 		SDL_GL_SetSwapInterval(1);
-	}
-
-	sqlite3* db;
-	CHECK_EQ_F(sqlite3_open_v2(NULL, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_MEMORY, NULL), SQLITE_OK,
-		"Failed to create test SQLite database: %s", sqlite3_errmsg(db));
-
-	GameObject* scene = new GameObject{};
-	scene->Add(new PointLight{vec3(0.2, 0.4, 0.6)});
-	scene->Add(new PointLight{vec3(0.6, 0.1, 0.1)});
-	scene->Add(new DirectionalLight{vec3(0.1, 0.1, 0.1)});
-	scene->Add(new DirectionalLight{vec3(0.2, 0.2, 0.2)});
-	scene->Add(new MeshInstance{nullptr});
-
-	for (GameObject& obj : scene->Children()) {
-		if (obj.type == GameObject::DIRECTIONAL_LIGHT) {
-			obj.Delete();
-			break;
-		}
-	}
-
-	String log = String::format("* %p %s", scene, scene->GetTypeName());
-	for (GameObject& obj : scene->Children()) {
-		log = String::join(std::move(log), String::format("\n  * %p %s", &obj, obj.GetTypeName()));
-	}
-	LOG_F(INFO, "All objects:\n%s", log.cstr);
-
-	auto test_path_join = [](String a, String b) {
-		LOG_F(INFO, "PathJoin('%s', '%s') == '%s'", a.cstr, b.cstr, PathJoin(a, b).cstr);
-	};
-	test_path_join("C:/Windows", "System32");
-	test_path_join("C:/Windows/", "/System32/");
-
-	LOG_F(INFO, "GetCurrentDir() = %s", GetCurrentDir().cstr);
-	for (String f : DirectoryIterator(GetCurrentDir())) {
-		LOG_F(INFO, "* %c %llu %s",
-			PathIsFile(f) ? '-' : PathIsDirectory(f) ? 'd' : '?',
-			GetFileModificationTime(f),
-			f.cstr);
-		if (f == "data") {
-			for (String ff : DirectoryIterator(f)) {
-				ff = PathJoin(f, ff);
-				LOG_F(INFO, "  * %c %llu %s",
-					PathIsFile(ff) ? '-' : PathIsDirectory(ff) ? 'd' : '?',
-					GetFileModificationTime(ff),
-					ff.cstr);
-			}
-		}
 	}
 
 	#if defined(EMSCRIPTEN)
@@ -109,9 +68,16 @@ static void loop(void) {
 	int w, h;
 	SDL_GL_GetDrawableSize(window, &w, &h);
 
+	uint32_t asset_loader_ops_left = 1;
+	while (asset_loader_ops_left) {
+		asset_loader_ops_left = ProcessAssetLoadOperation();
+	}
+
 	glViewport(0, 0, w, h);
 	glClearColor(0.3f, 0.4f, 0.55f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
+
+	Texture* tex = GetTexture("data/models/Duck/DuckCM.png", true);
 
 	SDL_GL_SwapWindow(window);
 }

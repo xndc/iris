@@ -37,6 +37,10 @@ add_executable(Main
 	"code/base/string.cc"
 	"code/base/filesystem.cc"
 	"code/graphics/opengl.cc"
+	"code/assets/asset_loader.cc"
+	"code/assets/texture.cc"
+	"code/assets/model.cc"
+	"code/assets/shader.cc"
 )
 target_include_directories(Main PRIVATE "code")
 set_target_properties(Main PROPERTIES OUTPUT_NAME "${CMAKE_PROJECT_NAME}")
