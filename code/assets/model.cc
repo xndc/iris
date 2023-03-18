@@ -80,7 +80,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 	JSON_Array* jbufferviews = json_object_get_array(root, "bufferViews");
 	auto buffers = std::vector<Buffer*>(json_array_get_count(jbufferviews));
 	auto gl_buffers = std::vector<GLuint>(buffers.size());
-	glGenBuffers(gl_buffers.size(), gl_buffers.data());
+	glGenBuffers(GLsizei(gl_buffers.size()), gl_buffers.data());
 	for (uint32_t ibuf = 0; ibuf < json_array_get_count(jbufferviews); ibuf++) {
 		JSON_Object* jbv = json_array_get_object(jbufferviews, ibuf);
 		uint32_t igbuf = uint32_t(json_object_get_number(jbv, "buffer"));
@@ -88,7 +88,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 		// TODO: GLTF also defines a byteStride. Do we need to store this somewhere, or can it
 		// always be inferred from the accessor properties?
 		buffers[ibuf] = new Buffer();
-		buffers[ibuf]->size = json_object_get_number(jbv, "byteLength");
+		buffers[ibuf]->size = uint32_t(json_object_get_number(jbv, "byteLength"));
 		buffers[ibuf]->cpu_buffer = &buffer_datas[igbuf][offset];
 		buffers[ibuf]->gpu_handle = gl_buffers[igbuf];
 	}
@@ -173,6 +173,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 	JSON_Array* jimages = json_object_get_array(root, "images");
 	JSON_Array* jtextures = json_object_get_array(root, "textures");
 	auto textures = std::vector<Texture*>(json_array_get_count(jimages));
+	uint32_t texture_bytes_used = 0;
 	for (uint32_t iimg = 0; iimg < json_array_get_count(jimages); iimg++) {
 		JSON_Object* jimg = json_array_get_object(jimages, iimg);
 
@@ -191,6 +192,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 		if (uri) {
 			String src = String::format("%s/%s", gltf_directory.cstr, uri);
 			textures[iimg] = GetTexture(src, texture_needs_mips);
+			texture_bytes_used += textures[iimg]->size();
 			LOG_F(INFO, "-> img=%u %ux%u levels=%u gl=%u %s", iimg, textures[iimg]->width, textures[iimg]->height,
 				textures[iimg]->num_levels, textures[iimg]->gl_texture, uri);
 		} else {
@@ -340,9 +342,10 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 		}
 
 		JSON_Array* jmat = json_object_get_array(jnode, "matrix");
-		Transform& nt = node->MutLocal();
+		Transform& nt = node->mut_local();
 		if (jmat) {
-			// We'll have to decompose this into translation, rotation and scale
+			// We'll have to decompose this into translation, rotation and scale. The GLTF spec says
+			// transform matrices must be decomposable.
 			mat4 matrix;
 			float* fmatrix = reinterpret_cast<float*>(&matrix); // FIXME: Surely glm has a helper for this?
 			for (int i = 0; i < 16; i++) { fmatrix[i] = float(json_array_get_number(jmat, i)); }
@@ -364,7 +367,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 	for (uint32_t imesh = 0; imesh < json_array_get_count(jmeshes); imesh++) {
 		JSON_Object* jmesh = json_array_get_object(jmeshes, imesh);
 		JSON_Array* jprims = json_object_get_array(jmesh, "primitives");
-		mesh_count += json_array_get_count(jprims);
+		mesh_count += uint32_t(json_array_get_count(jprims));
 	}
 
 	// Extract meshes from the node structure:
@@ -417,7 +420,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 
 			for (DefaultAttributes::Item attr : DefaultAttributes::all) {
 				if (!json_object_has_value(jattr, attr.gltf_name)) { continue; }
-				uint32_t ibv = json_object_get_number(jattr, attr.gltf_name);
+				uint32_t ibv = uint32_t(json_object_get_number(jattr, attr.gltf_name));
 				mesh.vertex_attribs[attr.index] = *buffer_views[ibv];
 				if (buffer_views[ibv]->buffer->usage.v == BufferUsage::Index) {
 					LOG_F(WARNING, "Mesh %u prim %u uses index buffer (acc=%u) for vertex data", igltfmesh, iprim, ibv);
@@ -450,7 +453,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 	LOG_F(INFO, "-> root object [%p]", model.root_object);
 	for (uint32_t inode = 0; inode < objects.size(); inode++) {
 		GameObject* node = objects[inode];
-		const Transform& nt = node->GetLocal();
+		const Transform& nt = node->local();
 		String extra = "";
 		if (node->type == GameObject::MESH_INSTANCE) {
 			MeshInstance* instance = static_cast<MeshInstance*>(objects[inode]);
@@ -463,12 +466,14 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 	}
 
 	// Upload buffers to the GPU now that we have usage info for them
+	uint32_t buffer_bytes_used = 0;
 	for (uint32_t ibuf = 0; ibuf < buffers.size(); ibuf++) {
 		Buffer& buffer = *buffers[ibuf];
 		GLenum target = buffer.usage.gl_target();
 		glBindBuffer(target, buffer.gpu_handle);
 		glBufferData(target, buffer.size, buffer.cpu_buffer, GL_STATIC_DRAW);
 		glBindBuffer(target, 0);
+		buffer_bytes_used += buffer.size;
 	}
 
 	// Set up GL vertex array object for each mesh and enable vertex attribute arrays
@@ -504,8 +509,11 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 	json_value_free(rootval);
 
 	uint64_t time_end = SDL_GetPerformanceCounter();
-	LOG_F(INFO, "-> model %s loaded in %.03f ms", model.display_name.cstr,
-		float(time_end - time_get_start) / ticks_per_msec);
+	LOG_F(INFO, "-> model %s loaded in %.03f ms, %.03f MiB buffers, %.03f MiB textures",
+		model.display_name.cstr,
+		float(time_end - time_get_start) / ticks_per_msec,
+		float(buffer_bytes_used) / 1048576.0f,
+		float(texture_bytes_used) / 1048576.0f);
 
 	return &model;
 }

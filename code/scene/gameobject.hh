@@ -23,7 +23,7 @@ struct GameObject {
 		MESH_INSTANCE,
 		TypeCount,
 	};
-	constexpr const char* GetTypeName() const {
+	constexpr const char* type_name() const {
 		switch (type) {
 			case GAME_OBJECT:       return "GameObject";
 			case SCENE_LINK:        return "SceneLink";
@@ -40,15 +40,15 @@ struct GameObject {
 	GameObject(Type type): type{type} {}
 
 	GameObject* parent = nullptr;
-	GameObject* firstChild = nullptr;
-	GameObject* nextSibling = nullptr;
+	GameObject* first_child = nullptr;
+	GameObject* next_sibling = nullptr;
 
-	GameObject* GetLastChild() {
-		GameObject* lastChild = this->firstChild;
-		while (lastChild->nextSibling != nullptr) {
-			lastChild = lastChild->nextSibling;
+	GameObject* last_child() {
+		GameObject* last = this->first_child;
+		while (last->next_sibling != nullptr) {
+			last = last->next_sibling;
 		}
-		return lastChild;
+		return last;
 	}
 
 	struct ChildIterator {
@@ -57,48 +57,48 @@ struct GameObject {
 		GameObject* next;
 		constexpr ChildIterator(GameObject* parent):
 			parent{parent},
-			current{parent ? parent->firstChild : nullptr},
-			next{current ? current->nextSibling : nullptr} {}
+			current{parent ? parent->first_child : nullptr},
+			next{current ? current->next_sibling : nullptr} {}
 		ChildIterator& begin() {
-			current = parent ? parent->firstChild : nullptr;
-			next = current ? current->nextSibling : nullptr;
+			current = parent ? parent->first_child : nullptr;
+			next = current ? current->next_sibling : nullptr;
 			return *this;
 		}
 		const ChildIterator end() { return ChildIterator(nullptr); }
 		ChildIterator& operator++() {
 			current = next;
-			next = current ? current->nextSibling : nullptr;
+			next = current ? current->next_sibling : nullptr;
 			return *this;
 		}
 		GameObject& operator*() { return *current; }
 		bool operator!=(const ChildIterator& other) { return current != other.current; }
 	};
-	ChildIterator Children() { return ChildIterator(this); }
+	ChildIterator children() { return ChildIterator(this); }
 
-	void Add(GameObject* child) {
+	void add(GameObject* child) {
 		if (ExpectFalse(child == nullptr)) { return; }
-		if (this->firstChild == nullptr) {
-			this->firstChild = child;
+		if (this->first_child == nullptr) {
+			this->first_child = child;
 		} else {
-			GameObject* lastChild = GetLastChild();
-			if (lastChild) {
-				lastChild->nextSibling = child;
+			GameObject* last = last_child();
+			if (last) {
+				last->next_sibling = child;
 			}
 		}
 		child->parent = this;
-		child->nextSibling = nullptr;
+		child->next_sibling = nullptr;
 	}
 
-	void Delete() {
+	void remove() {
 		if (this->parent) {
-			if (this->parent->firstChild == this) {
-				this->parent->firstChild = this->nextSibling;
+			if (this->parent->first_child == this) {
+				this->parent->first_child = this->next_sibling;
 			}
-			for (GameObject& obj : this->parent->Children()) {
-				if (obj.nextSibling == this) { obj.nextSibling = this->nextSibling; }
+			for (GameObject& obj : this->parent->children()) {
+				if (obj.next_sibling == this) { obj.next_sibling = this->next_sibling; }
 			}
 		}
-		for (GameObject& obj : Children()) {
+		for (GameObject& obj : children()) {
 			obj.parent = this->parent;
 		}
 		memset(this, 0, sizeof(*this));
@@ -106,27 +106,27 @@ struct GameObject {
 	}
 
 	Type type;
-	bool needsTransformUpdate = true;
+	bool needs_update = true;
 
-	const Transform& GetLocal() const { return this->local; }
-	const mat4& GetWorldMatrix() const { return this->worldMatrix; }
-	const mat4& GetLastWorldMatrix() const { return this->lastWorldMatrix; }
+	const Transform& local() const { return m_local; }
+	const mat4& world_matrix() const { return m_world_matrix; }
+	const mat4& last_world_matrix() const { return m_last_world_matrix; }
 
-	Transform& MutLocal() {
-		needsTransformUpdate = true;
-		return this->local;
+	Transform& mut_local() {
+		needs_update = true;
+		return m_local;
 	}
 
-	void SetWorldMatrix(const mat4 newWorldMatrix) {
-		needsTransformUpdate = false;
-		this->lastWorldMatrix = this->worldMatrix;
-		this->worldMatrix = newWorldMatrix;
+	void set_world_matrix(const mat4 world_matrix) {
+		needs_update = false;
+		m_last_world_matrix = world_matrix;
+		m_world_matrix = world_matrix;
 	}
 
 	private:
-	Transform local = {};
-	mat4 worldMatrix = mat4{1};
-	mat4 lastWorldMatrix = mat4{1};
+	Transform m_local = {};
+	mat4 m_world_matrix = mat4{1};
+	mat4 m_last_world_matrix = mat4{1};
 };
 
 struct SceneLink : GameObject {

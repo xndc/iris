@@ -5,6 +5,8 @@
 
 // Represents a 2D texture that may be fully, partially or not at all loaded into GPU memory.
 // To retrieve a texture object usable for rendering, use GetTexture().
+// TODO: We only support 8-bit UNORM textures at the moment. We probably want to support more
+// formats, including compressed ones.
 struct Texture {
 	String source_path;
 	bool generate_mips;
@@ -31,6 +33,14 @@ struct Texture {
 
 	Texture(const String& source_path, bool generate_mips = false):
 		source_path{String::copy(source_path)}, generate_mips{generate_mips} {}
+
+	uint32_t size() const {
+		uint32_t accum = 0;
+		for (uint32_t i = 0; i < num_levels; i++) {
+			accum += levels[i].width * levels[i].height * channels;
+		}
+		return accum;
+	}
 };
 
 namespace DefaultTextures {
