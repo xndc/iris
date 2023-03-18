@@ -24,7 +24,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 	Model& model = ModelLoader_Cache[source_path_hash];
 	if (model.source_path != nullptr) { return &model; }
 
-	float ticks_per_msec = float(SDL_GetPerformanceFrequency()) / 1000.0f;
+	float ticks_per_msec = float(SDL_GetPerformanceFrequency()) * 0.001f;
 	uint64_t time_get_start = SDL_GetPerformanceCounter();
 
 	model.source_path = String::copy(source_path);

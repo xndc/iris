@@ -57,6 +57,10 @@ void InitAssetLoader() {
 	}
 	LOG_F(INFO, "Data directory: %s", AssetLoader_DataDirectory.cstr);
 
+	// Change directory to just above the data directory. This makes it so we can just use ReadFile
+	// on a "data/asset.bin" path without needing a function to translate the path.
+	SetCurrentDir(PathJoin(AssetLoader_DataDirectory, ".."));
+
 	InitTextureLoader();
 	InitShaderLoader();
 	InitModelLoader();

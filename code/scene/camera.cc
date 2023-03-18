@@ -2,11 +2,6 @@
 #include "engine/engine.hh"
 #include "base/math.hh"
 
-// Generate a view matrix for the given camera position and rotation, given as Euler angles.
-static mat4 ViewMatrix(vec3 position, vec3 rotation) {
-
-}
-
 // Convert horizontal FOV to vertical FOV angles, working in radians.
 // Needs an inverse (height/width) aspect ratio to be provided, e.g. (3.0f/4.0f) for a 4:3 ratio.
 static float HorizontalToVerticalFOV(float hfov_rad, float inv_aspect) {

@@ -1,6 +1,7 @@
 #pragma once
 #include "base/base.hh"
 #include "scene/camera.hh"
+#include "engine/metrics.hh"
 
 enum class VSync: int8_t {
 	ADAPTIVE = -1,
@@ -40,7 +41,6 @@ struct FrameState {
 	float t_poll;   // after operating system is polled for events
 	float t_update; // after asset loading ops are processed and GameObjects are updated
 	float t_render; // after drawcalls are submitted to GPU
-	float t_swap;   // end of frame, after SwapWindow returns
 
 	// Mouse inputs, which we need to diff across frames:
 	// TODO: We should have a dedicated input system for this sort of thing.
@@ -65,6 +65,13 @@ struct FrameState {
 struct Engine {
 	FrameState this_frame;
 	FrameState last_frame;
+
+	// High-performance timestamp retrieved when the engine starts up.
+	uint64_t initial_t;
+	MetricBuffer metrics_poll   = MetricBuffer(360);
+	MetricBuffer metrics_update = MetricBuffer(360);
+	MetricBuffer metrics_render = MetricBuffer(360);
+	MetricBuffer metrics_swap   = MetricBuffer(360);
 
 	uint32_t display_w = 1280;
 	uint32_t display_h = 720;

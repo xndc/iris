@@ -135,7 +135,7 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 		return &texture;
 	}
 
-	float ticks_per_msec = float(SDL_GetPerformanceFrequency()) / 1000.0f;
+	float ticks_per_msec = float(SDL_GetPerformanceFrequency()) * 0.001f;
 	uint64_t time_get_start = SDL_GetPerformanceCounter();
 
 	if (texture.gl_texture != 0 && needs_reupload) {
