@@ -21,6 +21,7 @@ struct GameObject {
 		DIRECTIONAL_LIGHT,
 		POINT_LIGHT,
 		MESH_INSTANCE,
+		CAMERA,
 		TypeCount,
 	};
 	constexpr const char* type_name() const {
@@ -31,6 +32,7 @@ struct GameObject {
 			case DIRECTIONAL_LIGHT: return "DirectionalLight";
 			case POINT_LIGHT:       return "PointLight";
 			case MESH_INSTANCE:     return "MeshInstance";
+			case CAMERA:            return "Camera";
 			case TypeCount:         Unreachable();
 		}
 		Unreachable(); // suppresses warning on MSVC
