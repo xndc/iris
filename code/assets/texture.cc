@@ -186,15 +186,16 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 			mip_h = Max(1U, mip_h / 2U);
 			texture.levels[i].width  = mip_w;
 			texture.levels[i].height = mip_h;
-			uint8_t* level_data = &mipchain[mip_offset];
+			uint8_t* staging_buffer = &mipchain[mip_offset];
 			mip_offset += mip_w * mip_h * c;
-			texture.levels[i].staging_buffer = level_data;
+			texture.levels[i].staging_buffer = staging_buffer;
 			// Downscale from previous level to current level
-			if (!stbir_resize_uint8(image, texture.levels[i-1].width, texture.levels[i-1].height,
-				texture.levels[i-1].width * c, level_data, mip_w, mip_h, mip_w * c, c))
+			Texture::Level& last = texture.levels[i-1];
+			if (!stbir_resize_uint8(last.staging_buffer, last.width, last.height, last.width * c,
+				staging_buffer, mip_w, mip_h, mip_w * c, c))
 			{
 				// If downscale fails, fill level with red so this is visible
-				for (size_t i = 0; i < mip_w * mip_h * c; i++) { level_data[i] = (i % c) ? 0 : 255; }
+				for (size_t i = 0; i < mip_w * mip_h * c; i++) { staging_buffer[i] = (i % c) ? 0 : 255; }
 				LOG_F(ERROR, "Downscale failed for texture %s level %u (%ux%u)", source_path, i, mip_w, mip_h);
 			}
 		}
