@@ -24,6 +24,6 @@ struct Model {
 
 Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path);
 
-static FORCEINLINE Model* GetModelFromGLTF(const char* source_path) {
+static Model* GetModelFromGLTF(const char* source_path) {
 	return GetModelFromGLTF(Hash64(source_path), source_path);
 }

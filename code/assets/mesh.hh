@@ -16,7 +16,7 @@ struct ElementType {
 		MAT4X4,
 		Count,
 	} v;
-	FORCEINLINE constexpr ElementType(uint8_t v = 0) : v{Enum(v)} {};
+	constexpr ElementType(uint8_t v = 0) : v{Enum(v)} {};
 
 	constexpr uint8_t components() const {
 		switch (v) {
@@ -64,7 +64,7 @@ struct ComponentType {
 		F32,
 		Count
 	} v;
-	FORCEINLINE constexpr ComponentType(uint8_t v = 0) : v{Enum(v)} {};
+	constexpr ComponentType(uint8_t v = 0) : v{Enum(v)} {};
 
 	constexpr uint8_t bytes() const {
 		switch (v) {
@@ -120,7 +120,7 @@ struct PrimitiveType {
 		TRI_STRIP,
 		Count,
 	} v;
-	FORCEINLINE constexpr PrimitiveType(uint8_t v = 0) : v{Enum(v)} {};
+	constexpr PrimitiveType(uint8_t v = 0) : v{Enum(v)} {};
 
 	constexpr uint8_t vertices() const {
 		switch (v) {
@@ -186,9 +186,9 @@ struct BufferUsage {
 		// This buffer is intended for indices and will be bound to GL_ELEMENT_ARRAY_BUFFER.
 		Index,
 	} v;
-	FORCEINLINE constexpr BufferUsage(uint8_t v = 0) : v{Enum(v)} {};
+	constexpr BufferUsage(uint8_t v = 0) : v{Enum(v)} {};
 
-	FORCEINLINE constexpr GLenum gl_target() const {
+	constexpr GLenum gl_target() const {
 		switch (v) {
 			case BufferUsage::Unknown: return GL_ARRAY_BUFFER;
 			case BufferUsage::Vertex: return GL_ARRAY_BUFFER;
@@ -216,16 +216,16 @@ struct BufferView {
 	// Offset into buffer at which this BufferView starts, in bytes.
 	uint32_t offset = 0;
 
-	FORCEINLINE constexpr BufferView() {}
-	FORCEINLINE constexpr BufferView(Buffer* buffer, ElementType etype, ComponentType ctype, uint32_t elements):
+	constexpr BufferView() {}
+	constexpr BufferView(Buffer* buffer, ElementType etype, ComponentType ctype, uint32_t elements):
 		buffer{buffer}, etype{etype}, ctype{ctype}, elements{elements} {}
 
 	// Total number of components in this BufferView.
-	FORCEINLINE constexpr uint32_t components() const { return elements * etype.components(); }
+	constexpr uint32_t components() const { return elements * etype.components(); }
 	// Total size of this BufferView, in bytes.
-	FORCEINLINE constexpr uint32_t size() const { return components() * ctype.bytes(); }
+	constexpr uint32_t size() const { return components() * ctype.bytes(); }
 	// Distance between elements, in bytes.
-	FORCEINLINE constexpr uint32_t stride() const { return etype.components() * ctype.bytes(); }
+	constexpr uint32_t stride() const { return etype.components() * ctype.bytes(); }
 };
 
 struct Mesh {

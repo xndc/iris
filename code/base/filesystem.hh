@@ -38,13 +38,12 @@ struct DirectoryIterator {
 	String current;
 	char platform_data[512];
 
-	FORCEINLINE DirectoryIterator(const String& root) :
-		root{String::copy(root)}, current{}, platform_data{} {}
+	DirectoryIterator(const String& root) : root{String::copy(root)}, current{}, platform_data{} {}
 
 	DirectoryIterator& begin();
 	DirectoryIterator& operator++();
-	FORCEINLINE String operator*() { return String::view(current); }
+	String operator*() { return String::view(current); }
 
-	FORCEINLINE const DirectoryIterator end() { return DirectoryIterator(root); }
-	FORCEINLINE bool operator!= (const DirectoryIterator& rhs) { return current != rhs.current; }
+	const DirectoryIterator end() { return DirectoryIterator(root); }
+	bool operator!=(const DirectoryIterator& rhs) { return current != rhs.current; }
 };

@@ -43,7 +43,7 @@ struct GameObject {
 	GameObject* firstChild = nullptr;
 	GameObject* nextSibling = nullptr;
 
-	FORCEINLINE GameObject* GetLastChild() {
+	GameObject* GetLastChild() {
 		GameObject* lastChild = this->firstChild;
 		while (lastChild->nextSibling != nullptr) {
 			lastChild = lastChild->nextSibling;
@@ -55,25 +55,25 @@ struct GameObject {
 		GameObject* parent;
 		GameObject* current;
 		GameObject* next;
-		FORCEINLINE constexpr ChildIterator(GameObject* parent):
+		constexpr ChildIterator(GameObject* parent):
 			parent{parent},
 			current{parent ? parent->firstChild : nullptr},
 			next{current ? current->nextSibling : nullptr} {}
-		FORCEINLINE ChildIterator& begin() {
+		ChildIterator& begin() {
 			current = parent ? parent->firstChild : nullptr;
 			next = current ? current->nextSibling : nullptr;
 			return *this;
 		}
-		FORCEINLINE const ChildIterator end() { return ChildIterator(nullptr); }
-		FORCEINLINE ChildIterator& operator++() {
+		const ChildIterator end() { return ChildIterator(nullptr); }
+		ChildIterator& operator++() {
 			current = next;
 			next = current ? current->nextSibling : nullptr;
 			return *this;
 		}
-		FORCEINLINE GameObject& operator*() { return *current; }
-		FORCEINLINE bool operator!=(const ChildIterator& other) { return current != other.current; }
+		GameObject& operator*() { return *current; }
+		bool operator!=(const ChildIterator& other) { return current != other.current; }
 	};
-	FORCEINLINE ChildIterator Children() { return ChildIterator(this); }
+	ChildIterator Children() { return ChildIterator(this); }
 
 	void Add(GameObject* child) {
 		if (ExpectFalse(child == nullptr)) { return; }
@@ -108,16 +108,16 @@ struct GameObject {
 	Type type;
 	bool needsTransformUpdate = true;
 
-	FORCEINLINE const Transform& GetLocal() const { return this->local; }
-	FORCEINLINE const mat4& GetWorldMatrix() const { return this->worldMatrix; }
-	FORCEINLINE const mat4& GetLastWorldMatrix() const { return this->lastWorldMatrix; }
+	const Transform& GetLocal() const { return this->local; }
+	const mat4& GetWorldMatrix() const { return this->worldMatrix; }
+	const mat4& GetLastWorldMatrix() const { return this->lastWorldMatrix; }
 
-	FORCEINLINE Transform& MutLocal() {
+	Transform& MutLocal() {
 		needsTransformUpdate = true;
 		return this->local;
 	}
 
-	FORCEINLINE void SetWorldMatrix(const mat4 newWorldMatrix) {
+	void SetWorldMatrix(const mat4 newWorldMatrix) {
 		needsTransformUpdate = false;
 		this->lastWorldMatrix = this->worldMatrix;
 		this->worldMatrix = newWorldMatrix;

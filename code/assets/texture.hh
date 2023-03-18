@@ -42,7 +42,8 @@ namespace DefaultTextures {
 // Allocates or returns a previously allocated Texture object for the given path and parameters.
 // Once requested, the texture will be uploaded to the GPU when possible.
 Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool generate_mips = false);
-static FORCEINLINE Texture* GetTexture(const char* source_path, bool generate_mips = false) {
+
+static Texture* GetTexture(const char* source_path, bool generate_mips = false) {
 	return GetTexture(Hash64(source_path), source_path, generate_mips);
 }
 
