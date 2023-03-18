@@ -159,8 +159,6 @@ static void loop(void) {
 		ImPlot::SetupAxisLimits(ImAxis_X1, time_min, time_max, ImPlotCond_Always);
 
 		// Default plot Y-axis range suitable for 30FPS frames, with gradual transitions when needed
-		// FIXME: This doesn't really work that well. I'm also seeing some weird issues with
-		// flickering whenever large events go off the plot. Not sure what's causing those.
 		double val_max = Max<double>(
 			Max(engine.metrics_poll.max(), engine.metrics_update.max()),
 			Max(engine.metrics_swap.max(), engine.metrics_render.max()));
@@ -182,16 +180,16 @@ static void loop(void) {
 		// Have to set colours manually because they're derived from the label by default
 		ImPlot::SetNextFillStyle(ImVec4(0.32f, 0.8f, 0.96f, 1.0f), 1.0f);
 		ImPlot::PlotShaded<float>(label_swap, engine.metrics_swap_plt.times, engine.metrics_swap_plt.values,
-			engine.metrics_swap_plt.used, -INFINITY, 0, 0);
+			engine.metrics_swap_plt.used, -INFINITY, 0, engine.metrics_swap_plt.next);
 		ImPlot::SetNextFillStyle(ImVec4(0.87f, 0.36f, 0.96f, 1.0f), 1.0f);
 		ImPlot::PlotShaded<float>(label_render, engine.metrics_render_plt.times, engine.metrics_render_plt.values,
-			engine.metrics_render_plt.used, -INFINITY, 0, 0);
+			engine.metrics_render_plt.used, -INFINITY, 0, engine.metrics_swap_plt.next);
 		ImPlot::SetNextFillStyle(ImVec4(0.65f, 0.96f, 0.38f, 1.0f), 1.0f);
 		ImPlot::PlotShaded<float>(label_update, engine.metrics_update_plt.times, engine.metrics_update_plt.values,
-			engine.metrics_update_plt.used, -INFINITY, 0, 0);
+			engine.metrics_update_plt.used, -INFINITY, 0, engine.metrics_swap_plt.next);
 		ImPlot::SetNextFillStyle(ImVec4(0.96f, 0.69f, 0.41f, 1.0f), 1.0f);
 		ImPlot::PlotShaded<float>(label_poll, engine.metrics_poll.times, engine.metrics_poll.values,
-			engine.metrics_poll.used, -INFINITY, 0, 0);
+			engine.metrics_poll.used, -INFINITY, 0, engine.metrics_swap_plt.next);
 		ImPlot::EndPlot();
 	}
 	ImPlot::PopStyleVar();
