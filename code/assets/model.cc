@@ -462,10 +462,39 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 			nt.rotation.x, nt.rotation.y, nt.rotation.z, nt.rotation.w, extra.cstr);
 	}
 
-	// TODO: Actually upload buffers to GPU now that we have usage info for them
+	// Upload buffers to the GPU now that we have usage info for them
+	for (uint32_t ibuf = 0; ibuf < buffers.size(); ibuf++) {
+		Buffer& buffer = *buffers[ibuf];
+		GLenum target = buffer.usage.gl_target();
+		glBindBuffer(target, buffer.gpu_handle);
+		glBufferData(target, buffer.size, buffer.cpu_buffer, GL_STATIC_DRAW);
+		glBindBuffer(target, 0);
+	}
+
+	// Set up GL vertex array object for each mesh and enable vertex attribute arrays
+	for (uint32_t imesh = 0; imesh < meshes.size(); imesh++) {
+		Mesh& mesh = *meshes[imesh];
+		glGenVertexArrays(1, &mesh.gl_vertex_array);
+		glBindVertexArray(mesh.gl_vertex_array);
+		if (mesh.index_buffer.buffer) {
+			Buffer& buffer = *mesh.index_buffer.buffer;
+			glBindBuffer(buffer.usage.gl_target(), buffer.gpu_handle);
+		}
+		for (uint32_t iattr = 0; iattr < mesh.MaxVertexAttribs; iattr++) {
+			if (mesh.vertex_attribs[iattr].buffer) {
+				BufferView& bufview = mesh.vertex_attribs[iattr];
+				Buffer& buffer = *bufview.buffer;
+				glBindBuffer(buffer.usage.gl_target(), buffer.gpu_handle);
+				GLuint location = DefaultAttributes::all[iattr].index;
+				glEnableVertexAttribArray(location);
+				glVertexAttribPointer(location, bufview.components(), bufview.ctype.gl_enum(), false,
+					bufview.stride(), nullptr);
+			}
+		}
+		glBindVertexArray(0);
+	}
 
 	model.buffers = std::move(buffers);
-	model.buffer_views = std::move(buffer_views);
 	model.textures = std::move(textures);
 	model.samplers = std::move(samplers);
 	model.materials = std::move(materials);
@@ -473,6 +502,10 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 	model.objects = std::move(objects);
 
 	json_value_free(rootval);
+
+	uint64_t time_end = SDL_GetPerformanceCounter();
+	LOG_F(INFO, "-> model %s loaded in %.03f ms", model.display_name.cstr,
+		float(time_end - time_get_start) / ticks_per_msec);
 
 	return &model;
 }

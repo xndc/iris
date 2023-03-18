@@ -14,7 +14,6 @@ struct Model {
 	String display_name;
 	String source_path;
 	std::vector<Buffer*> buffers;
-	std::vector<BufferView*> buffer_views;
 	std::vector<Texture*> textures;
 	std::vector<Sampler*> samplers;
 	std::vector<Material*> materials;

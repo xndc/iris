@@ -220,8 +220,12 @@ struct BufferView {
 	FORCEINLINE constexpr BufferView(Buffer* buffer, ElementType etype, ComponentType ctype, uint32_t elements):
 		buffer{buffer}, etype{etype}, ctype{ctype}, elements{elements} {}
 
+	// Total number of components in this BufferView.
 	FORCEINLINE constexpr uint32_t components() const { return elements * etype.components(); }
+	// Total size of this BufferView, in bytes.
 	FORCEINLINE constexpr uint32_t size() const { return components() * ctype.bytes(); }
+	// Distance between elements, in bytes.
+	FORCEINLINE constexpr uint32_t stride() const { return etype.components() * ctype.bytes(); }
 };
 
 struct Mesh {
