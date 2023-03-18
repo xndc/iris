@@ -4,8 +4,10 @@
 #include <string.h>
 #include <stb_sprintf.h>
 
-String::String(uint32_t size): cstr{nullptr}, capacity{size + 1}, _size{0} {
-	const_cast<char*&>(cstr) = static_cast<char*>(calloc(capacity, 1));
+String::String(uint32_t size): cstr{nullptr}, capacity{size ? size + 1 : 0}, _size{0} {
+	if (ExpectTrue(size != 0)) {
+		const_cast<char*&>(cstr) = static_cast<char*>(calloc(capacity, 1));
+	}
 }
 
 String String::copy(const char* cstr, uint32_t size) {
