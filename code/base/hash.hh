@@ -31,14 +31,6 @@ static constexpr uint64_t Hash64(const void* buffer, size_t bytes) {
 	return hash;
 }
 
-// Compute a 64-bit hash from a fixed-size object using the FNV-1a algorithm.
-// Templated "hasher" version for use with STL containers. Note that the output may be 32-bit.
-struct Hash64T {
-	template<typename T> size_t operator()(const T& x) const {
-		return static_cast<size_t>(Hash64(reinterpret_cast<const char*>(&x)));
-	}
-};
-
 // Check that Hash64 is evaluated at compile-time.
 StaticAssert(Hash64("X") == 12638249872718450023ULL);
 StaticAssert(Hash64(nullptr) == FNV_BASIS);
