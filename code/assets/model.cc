@@ -12,7 +12,7 @@
 #include "scene/gameobject.hh"
 
 static bool ModelLoader_Initialised = false;
-std::unordered_map<uint64_t, Model> ModelLoader_Cache = {};
+static std::unordered_map<uint64_t, Model> ModelLoader_Cache = {};
 
 void InitModelLoader() {
 	if (ModelLoader_Initialised) { return; }
