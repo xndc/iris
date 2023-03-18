@@ -161,8 +161,6 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 	texture.channels = static_cast<uint32_t>(c);
 
 	uint64_t time_disk_load_end = SDL_GetPerformanceCounter();
-	LOG_F(INFO, "Texture %s: loaded from disk in %.03f ms", source_path,
-		float(time_disk_load_end - time_get_start) / ticks_per_msec);
 
 	texture.num_levels = generate_mips ? MipchainLevelCount(w, h) : 1;
 	uint32_t texture_size = 0;
@@ -202,14 +200,14 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 	}
 
 	uint64_t time_mipgen_end = SDL_GetPerformanceCounter();
-	LOG_F(INFO, "Texture %s: generated mipmaps in %.03f ms", source_path,
-		float(time_mipgen_end - time_disk_load_end) / ticks_per_msec);
 
 	UploadStagedLevels(texture);
 
 	uint64_t time_upload_end = SDL_GetPerformanceCounter();
-	LOG_F(INFO, "Texture %s: uploaded as GL texture object %u in %.03f ms", source_path, texture.gl_texture,
-		float(time_upload_end - time_mipgen_end) / ticks_per_msec);
+	LOG_F(INFO, "Texture %s: load %.03fms mipgen %.03f ms upload %.03fms gltex=%u", source_path,
+		float(time_disk_load_end - time_get_start) / ticks_per_msec,
+		float(time_mipgen_end - time_disk_load_end) / ticks_per_msec,
+		float(time_upload_end - time_mipgen_end) / ticks_per_msec, texture.gl_texture);
 
 	stbi_image_free(image);
 	free(mipchain);

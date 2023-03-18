@@ -237,7 +237,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 				normal.name = DefaultUniforms::TexNormal.name;
 				normal.texture = textures[uint32_t(json_object_get_number(jtex, "source"))];
 				normal.sampler = samplers[uint32_t(json_object_get_number(jtex, "sampler"))];
-				LOG_F(INFO, "-> material=%u %s gltex=%u", imat, normal.name, normal.texture->gl_texture);
+				LOG_F(INFO, "-> material=%u -> %s gltex=%u", imat, normal.name, normal.texture->gl_texture);
 			}
 		}
 		JSON_Object* jocctex = json_object_get_object(jmat, "occlusionTexture");
@@ -249,7 +249,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 				occlusion.name = DefaultUniforms::TexOcclusion.name;
 				occlusion.texture = textures[uint32_t(json_object_get_number(jtex, "source"))];
 				occlusion.sampler = samplers[uint32_t(json_object_get_number(jtex, "sampler"))];
-				LOG_F(INFO, "-> material=%u %s gltex=%u", imat, occlusion.name, occlusion.texture->gl_texture);
+				LOG_F(INFO, "-> material=%u -> %s gltex=%u", imat, occlusion.name, occlusion.texture->gl_texture);
 			}
 		}
 
@@ -266,7 +266,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 				const_albedo.vec4.f32.g = float(json_array_get_number(jbaseColorFactor, 1));
 				const_albedo.vec4.f32.b = float(json_array_get_number(jbaseColorFactor, 2));
 				const_albedo.vec4.f32.a = float(json_array_get_number(jbaseColorFactor, 3));
-				LOG_F(INFO, "-> material=%u %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_albedo.name,
+				LOG_F(INFO, "-> material=%u -> %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_albedo.name,
 					const_albedo.vec4.f32.r, const_albedo.vec4.f32.g,
 					const_albedo.vec4.f32.b, const_albedo.vec4.f32.a);
 			}
@@ -276,7 +276,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 				const_metallic.etype = ElementType::SCALAR;
 				const_metallic.ctype = ComponentType::F32;
 				const_metallic.scalar.f32 = float(json_object_get_number(jmr, "metallicFactor"));
-				LOG_F(INFO, "-> material=%u %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_metallic.name,
+				LOG_F(INFO, "-> material=%u -> %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_metallic.name,
 					const_metallic.vec4.f32.r, const_metallic.vec4.f32.g,
 					const_metallic.vec4.f32.b, const_metallic.vec4.f32.a);
 			}
@@ -286,7 +286,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 				const_roughness.etype = ElementType::SCALAR;
 				const_roughness.ctype = ComponentType::F32;
 				const_roughness.scalar.f32 = float(json_object_get_number(jmr, "roughnessFactor"));
-				LOG_F(INFO, "-> material=%u %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_roughness.name,
+				LOG_F(INFO, "-> material=%u -> %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_roughness.name,
 					const_roughness.vec4.f32.r, const_roughness.vec4.f32.g,
 					const_roughness.vec4.f32.b, const_roughness.vec4.f32.a);
 			}
@@ -299,7 +299,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 					albedo.name = DefaultUniforms::TexAlbedo.name;
 					albedo.texture = textures[uint32_t(json_object_get_number(jtex, "source"))];
 					albedo.sampler = samplers[uint32_t(json_object_get_number(jtex, "sampler"))];
-					LOG_F(INFO, "-> material=%u %s gltex=%u", imat, albedo.name, albedo.texture->gl_texture);
+					LOG_F(INFO, "-> material=%u -> %s gltex=%u", imat, albedo.name, albedo.texture->gl_texture);
 				}
 			}
 			JSON_Object* jmetallicRoughnessTexture = json_object_get_object(jmr, "metallicRoughnessTexture");
@@ -311,7 +311,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 					rm.name = DefaultUniforms::TexOccRghMet.name;
 					rm.texture = textures[uint32_t(json_object_get_number(jtex, "source"))];
 					rm.sampler = samplers[uint32_t(json_object_get_number(jtex, "sampler"))];
-					LOG_F(INFO, "-> material=%u %s gltex=%u", imat, rm.name, rm.texture->gl_texture);
+					LOG_F(INFO, "-> material=%u -> %s gltex=%u", imat, rm.name, rm.texture->gl_texture);
 				}
 			}
 		}

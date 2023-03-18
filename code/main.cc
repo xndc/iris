@@ -78,6 +78,7 @@ static void loop(void) {
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	Model* duck = GetModelFromGLTF("data/models/Duck/Duck.gltf");
+	Model* sponza = GetModelFromGLTF("data/models/Sponza/Sponza.gltf");
 
 	SDL_GL_SwapWindow(window);
 }
