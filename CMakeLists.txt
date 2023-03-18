@@ -150,17 +150,24 @@ endif()
 set_target_properties(dear_imgui PROPERTIES CXX_STANDARD 20 CXX_EXTENSIONS ON)
 target_link_libraries(Main PRIVATE dear_imgui)
 
+add_library(implot STATIC
+	"external/implot/implot.cpp"
+	"external/implot/implot_items.cpp")
+target_include_directories(implot PUBLIC "external/implot")
+target_link_libraries(implot PUBLIC dear_imgui)
+target_link_libraries(Main PRIVATE implot)
+
 add_library(loguru STATIC "external/loguru/loguru.cpp")
-target_include_directories(loguru INTERFACE "external/loguru")
+target_include_directories(loguru PUBLIC "external/loguru")
 target_link_libraries(loguru PRIVATE stb)
 target_link_libraries(Main PRIVATE loguru)
 
 add_library(sqlite STATIC "external/sqlite/sqlite3.c")
-target_include_directories(sqlite INTERFACE "external/sqlite")
+target_include_directories(sqlite PUBLIC "external/sqlite")
 target_link_libraries(Main PRIVATE sqlite)
 
 add_library(parson STATIC "external/parson/parson.c")
-target_include_directories(parson INTERFACE "external/parson")
+target_include_directories(parson PUBLIC "external/parson")
 target_link_libraries(Main PRIVATE parson)
 
 # **************************************************************************************************

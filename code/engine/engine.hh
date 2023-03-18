@@ -68,10 +68,15 @@ struct Engine {
 
 	// High-performance timestamp retrieved when the engine starts up.
 	uint64_t initial_t;
+	// Metric buffers containing time taken for each part of a frame.
 	MetricBuffer metrics_poll   = MetricBuffer(360);
 	MetricBuffer metrics_update = MetricBuffer(360);
 	MetricBuffer metrics_render = MetricBuffer(360);
 	MetricBuffer metrics_swap   = MetricBuffer(360);
+	// Metric buffers containing cumulative times, for plotting.
+	MetricBuffer metrics_update_plt = MetricBuffer(360);
+	MetricBuffer metrics_render_plt = MetricBuffer(360);
+	MetricBuffer metrics_swap_plt   = MetricBuffer(360);
 
 	uint32_t display_w = 1280;
 	uint32_t display_h = 720;

@@ -41,6 +41,12 @@ FetchContent_Populate(dear_imgui
 	GIT_TAG 458a1090314a965dd37b02c918d83077a0142ad5 # v1.89.3 (14 Feb 2023)
 	GIT_SHALLOW YES)
 
+FetchContent_Populate(implot
+	SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/implot"
+	GIT_REPOSITORY https://github.com/epezent/implot
+	GIT_TAG 33c5a965f55f80057f197257d1d1cdb06523e963 # v1.89.3 (16 Feb 2023)
+	GIT_SHALLOW YES)
+
 FetchContent_Populate(cmake_checks_cache
 	SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake_checks_cache"
 	GIT_REPOSITORY https://github.com/cristianadam/cmake-checks-cache.git
