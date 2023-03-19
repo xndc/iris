@@ -18,18 +18,13 @@ struct Shader {
 	Shader(Type type, GLenum gl_type): type{type}, gl_type{gl_type} {}
 };
 
-struct VertShader : Shader {
-	VertShader(): Shader{VERTEX, GL_VERTEX_SHADER} {}
-};
-
-struct FragShader : Shader {
-	FragShader(): Shader{FRAGMENT, GL_FRAGMENT_SHADER} {}
-};
+struct VertShader : Shader {};
+struct FragShader : Shader {};
 
 struct Program {
-	VertShader* vsh;
-	FragShader* fsh;
-	GLuint gl_program;
+	VertShader* vsh = nullptr;
+	FragShader* fsh = nullptr;
+	GLuint gl_program = 0;
 	Program() = default;
 	Program(VertShader* vsh, FragShader* fsh): vsh{vsh}, fsh{fsh} {}
 };

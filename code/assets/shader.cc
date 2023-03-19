@@ -171,7 +171,8 @@ VertShader* GetVertShader(const char* path) {
 		return &shader;
 	}
 
-	shader = VertShader();
+	shader.type = Shader::VERTEX;
+	shader.gl_type = GL_VERTEX_SHADER;
 	shader.source_path = String::copy(path);
 	LoadShaderFromDisk(shader);
 
@@ -187,7 +188,8 @@ FragShader* GetFragShader(const char* path) {
 		return &shader;
 	}
 
-	shader = FragShader();
+	shader.type = Shader::FRAGMENT;
+	shader.gl_type = GL_FRAGMENT_SHADER;
 	shader.source_path = String::copy(path);
 	LoadShaderFromDisk(shader);
 
