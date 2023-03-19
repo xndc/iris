@@ -181,28 +181,34 @@ set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT M
 # Enable Xcode scheme file generation. Build.py needs this in order to set the working directory.
 set_target_properties(Main PROPERTIES XCODE_GENERATE_SCHEME ON)
 
-# FIXME: This is broken in some bizarre way. It seems to add some garbage in CMakeFiles to the
-# target sources list, without setting HEADER_FILE_ONLY. I have no idea how.
 # Adds all source files under ${subdir} to ${target} with the HEADER_FILE_ONLY property, making them
 # visible in Visual Studio and Xcode without affecting compilation.
 function(ide_add_source_files target subdir)
 	get_target_property(target_sources ${target} SOURCES)
-	file(GLOB_RECURSE sources_in_subdir RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/${subdir}"
-		"*.cpp" "*.cc" "*.c" "*.hpp" "*.hh" "*.h" "*.inl" "*.rc")
+	file(GLOB_RECURSE sources_in_subdir RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+		"${CMAKE_CURRENT_SOURCE_DIR}/${subdir}/*.cpp"
+		"${CMAKE_CURRENT_SOURCE_DIR}/${subdir}/*.cc"
+		"${CMAKE_CURRENT_SOURCE_DIR}/${subdir}/*.c"
+		"${CMAKE_CURRENT_SOURCE_DIR}/${subdir}/*.hpp"
+		"${CMAKE_CURRENT_SOURCE_DIR}/${subdir}/*.hh"
+		"${CMAKE_CURRENT_SOURCE_DIR}/${subdir}/*.h"
+		"${CMAKE_CURRENT_SOURCE_DIR}/${subdir}/*.inl"
+		"${CMAKE_CURRENT_SOURCE_DIR}/${subdir}/*.rc")
 	foreach(source_file ${sources_in_subdir})
 		# Normalise path names:
 		string(REPLACE "\\" "/" source_file_normalized ${source_file})
-		# Set the group name, e.g. "Code/Platform" from "Code/Platform/Win32.cc":
+		# Set the group name, e.g. "code/base" from "code/base/base.hh":
 		get_filename_component(source_file_dir ${source_file_normalized} DIRECTORY)
-		source_group("Code/${source_file_dir}" FILES ${source_file})
+		source_group("${source_file_dir}" FILES ${source_file})
 		# Don't do anything else to files that are already linked to the target:
 		list(FIND target_sources ${source_file} file_index_in_target)
 		if (${file_index_in_target} GREATER -1)
 			continue()
 		endif()
 		# Add file to target as header:
+		message(STATUS "Adding ${source_file} to target")
 		set_source_files_properties(${source_file} PROPERTIES HEADER_FILE_ONLY ON)
 		target_sources(${target} PRIVATE ${source_file})
 	endforeach()
 endfunction()
-#ide_add_source_files(Main "Code")
+ide_add_source_files(Main "code")
