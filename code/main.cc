@@ -98,9 +98,10 @@ static void loop(void) {
 		engine.metrics_update.push(frame_start_t, engine.last_frame.t_update - engine.last_frame.t_poll);
 		engine.metrics_render.push(frame_start_t, engine.last_frame.t_render - engine.last_frame.t_update);
 		engine.metrics_swap  .push(frame_start_t, engine.this_frame.t - engine.last_frame.t_render);
-		engine.metrics_update_plt.push(frame_start_t, engine.last_frame.t_update - engine.last_frame.t);
-		engine.metrics_render_plt.push(frame_start_t, engine.last_frame.t_render - engine.last_frame.t);
-		engine.metrics_swap_plt  .push(frame_start_t, engine.this_frame.t        - engine.last_frame.t);
+		// render_plt is swap+render, update_plt is swap+render+update, poll_plt is the entire frame
+		engine.metrics_render_plt.push(frame_start_t, engine.this_frame.t - engine.last_frame.t_update);
+		engine.metrics_update_plt.push(frame_start_t, engine.this_frame.t - engine.last_frame.t_poll);
+		engine.metrics_poll_plt  .push(frame_start_t, engine.this_frame.t - engine.last_frame.t);
 	}
 
 	SDL_Event event = {0};
@@ -178,20 +179,20 @@ static void loop(void) {
 		stbsp_snprintf(label_swap, sizeof(label_swap), "swap %.03fms max %.03fms",
 			engine.metrics_swap.avg(), engine.metrics_swap.max());
 
-		// Plotting from cumulative arrays, in reverse order to get the correct overlap
-		// Have to set colours manually because they're derived from the label by default
+		// Plotting from cumulative arrays. Order is important to get the correct overlap.
+		// Have to set colours manually because they're derived from the label by default.
 		ImPlot::SetNextFillStyle(ImVec4(0.32f, 0.8f, 0.96f, 1.0f), 1.0f);
-		ImPlot::PlotShaded<float>(label_swap, engine.metrics_swap_plt.times, engine.metrics_swap_plt.values,
-			engine.metrics_swap_plt.used, -INFINITY, 0, engine.metrics_swap_plt.next);
+		ImPlot::PlotShaded<float>(label_poll, engine.metrics_poll_plt.times, engine.metrics_poll_plt.values,
+			engine.metrics_poll_plt.used, -INFINITY, 0, engine.metrics_poll_plt.next);
 		ImPlot::SetNextFillStyle(ImVec4(0.87f, 0.36f, 0.96f, 1.0f), 1.0f);
-		ImPlot::PlotShaded<float>(label_render, engine.metrics_render_plt.times, engine.metrics_render_plt.values,
-			engine.metrics_render_plt.used, -INFINITY, 0, engine.metrics_swap_plt.next);
-		ImPlot::SetNextFillStyle(ImVec4(0.65f, 0.96f, 0.38f, 1.0f), 1.0f);
 		ImPlot::PlotShaded<float>(label_update, engine.metrics_update_plt.times, engine.metrics_update_plt.values,
-			engine.metrics_update_plt.used, -INFINITY, 0, engine.metrics_swap_plt.next);
+			engine.metrics_update_plt.used, -INFINITY, 0, engine.metrics_update_plt.next);
+		ImPlot::SetNextFillStyle(ImVec4(0.65f, 0.96f, 0.38f, 1.0f), 1.0f);
+		ImPlot::PlotShaded<float>(label_render, engine.metrics_render_plt.times, engine.metrics_render_plt.values,
+			engine.metrics_render_plt.used, -INFINITY, 0, engine.metrics_render_plt.next);
 		ImPlot::SetNextFillStyle(ImVec4(0.96f, 0.69f, 0.41f, 1.0f), 1.0f);
-		ImPlot::PlotShaded<float>(label_poll, engine.metrics_poll.times, engine.metrics_poll.values,
-			engine.metrics_poll.used, -INFINITY, 0, engine.metrics_swap_plt.next);
+		ImPlot::PlotShaded<float>(label_swap, engine.metrics_swap.times, engine.metrics_swap.values,
+			engine.metrics_swap.used, -INFINITY, 0, engine.metrics_swap.next);
 		ImPlot::EndPlot();
 	}
 	ImPlot::PopStyleVar();

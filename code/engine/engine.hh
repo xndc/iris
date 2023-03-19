@@ -74,9 +74,9 @@ struct Engine {
 	MetricBuffer metrics_render = MetricBuffer(360);
 	MetricBuffer metrics_swap   = MetricBuffer(360);
 	// Metric buffers containing cumulative times, for plotting.
+	MetricBuffer metrics_poll_plt   = MetricBuffer(360);
 	MetricBuffer metrics_update_plt = MetricBuffer(360);
 	MetricBuffer metrics_render_plt = MetricBuffer(360);
-	MetricBuffer metrics_swap_plt   = MetricBuffer(360);
 
 	uint32_t display_w = 1280;
 	uint32_t display_h = 720;
