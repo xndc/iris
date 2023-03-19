@@ -246,7 +246,37 @@ Program* GetProgram(VertShader* vsh, FragShader* fsh) {
 void ProcessShaderUpdates(const Engine& engine) {
 	if (UpdateShaderDefines(engine)) {
 		for (auto& [key, program] : ProgramCache) {
+			if (program.vsh) { program.vsh->invalidate(); }
+			if (program.fsh) { program.fsh->invalidate(); }
 			program.invalidate();
+		}
+	}
+	// Detect on-disk shader changes. Pointless for web/mobile builds since the "disk" is read-only.
+	if (PLATFORM_DESKTOP) {
+		static size_t bucket_idx = 0;
+		size_t bucket_count = ShaderCache.bucket_count();
+		Shader* invalidated_shader = nullptr;
+
+		for (size_t i = bucket_idx; i < bucket_idx + bucket_count; i++) {
+			size_t bucket = i % bucket_count;
+			for (auto it = ShaderCache.begin(bucket); it != ShaderCache.end(bucket); ++it) {
+				Shader& shader = it->second;
+				if (shader.mtime != 0 && shader.mtime != GetFileModificationTime(shader.source_path)) {
+					shader.invalidate();
+					invalidated_shader = &shader;
+					break;
+				}
+			}
+			if (invalidated_shader) { break; }
+		}
+		bucket_idx = (bucket_idx + 1) % bucket_count;
+
+		if (invalidated_shader) {
+			for (auto& [key, program] : ProgramCache) {
+				if (program.vsh == invalidated_shader || program.fsh == invalidated_shader) {
+					program.invalidate();
+				}
+			}
 		}
 	}
 }
@@ -257,8 +287,6 @@ void Shader::invalidate() {
 }
 
 void Program::invalidate() {
-	if (vsh) { vsh->invalidate(); }
-	if (fsh) { fsh->invalidate(); }
 	if (gl_program) { glDeleteProgram(gl_program); }
 	gl_program = 0;
 }
