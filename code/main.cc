@@ -159,7 +159,8 @@ static void loop(void) {
 		double time_max = Max<double>(
 			Max(engine.metrics_poll.max_time(), engine.metrics_update.max_time()),
 			Max(engine.metrics_swap.max_time(), engine.metrics_render.max_time()));
-		ImPlot::SetupAxisLimits(ImAxis_X1, time_min, time_max, ImPlotCond_Always);
+		double min_plot_time = Min(time_min, time_max - float(engine.metrics_poll.frames) * 4.0);
+		ImPlot::SetupAxisLimits(ImAxis_X1, min_plot_time, time_max, ImPlotCond_Always);
 
 		// Default plot Y-axis range suitable for 30FPS frames, with gradual transitions when needed
 		double val_max = Max<double>(
