@@ -1,6 +1,6 @@
 #pragma once
-
 #include "base/base.hh"
+#include "base/hash.hh"
 #include "graphics/opengl.hh"
 
 namespace DefaultAttributes {
@@ -28,8 +28,9 @@ namespace DefaultAttributes {
 
 namespace DefaultUniforms {
 	struct Item {
+		uint64_t hash;
 		const char* name;
-		constexpr Item(const char* name) : name{name} {}
+		constexpr Item(const char* name) : hash{Hash64(name)}, name{name} {}
 	};
 
 	// Global parameters
@@ -65,5 +66,7 @@ namespace DefaultUniforms {
 		RTDiffuse, RTNormal, RTMaterial, RTVelocity, RTColorHDR, RTDepth,
 		FramebufferSize,
 		MatModelViewProjection, InvModelViewProjection, MatModel, InvModel,
+		TexAlbedo, TexNormal, TexOcclusion, TexOccRghMet,
+		ConstAlbedo, ConstMetallic, ConstRoughness,
 	};
 }

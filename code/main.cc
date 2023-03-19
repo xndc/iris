@@ -216,8 +216,7 @@ static void loop(void) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glUseProgram(prog->gl_program);
-	glUniform2f(glGetUniformLocation(prog->gl_program, "FramebufferSize"),
-		float(engine.display_w), float(engine.display_h));
+	prog->uniform(DefaultUniforms::FramebufferSize, vec2(engine.display_w, engine.display_h));
 	glBindVertexArray(DefaultMeshes::QuadXZ.gl_vertex_array);
 	glDrawElements(DefaultMeshes::QuadXZ.ptype.gl_enum(), DefaultMeshes::QuadXZ.index_buffer.total_components(),
 		DefaultMeshes::QuadXZ.index_buffer.ctype.gl_enum(), nullptr);

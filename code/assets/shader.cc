@@ -240,14 +240,23 @@ Program* GetProgram(VertShader* vsh, FragShader* fsh) {
 		}
 	#endif
 
+	for (uint32_t i = 0; i < CountOf(DefaultUniforms::all); i++) {
+		program.uniform_locations[i] = glGetUniformLocation(program.gl_program, DefaultUniforms::all[i].name);
+	}
+
+	for (const DefaultAttributes::Item& attrib : DefaultAttributes::all) {
+		glBindAttribLocation(program.gl_program, attrib.index, attrib.name);
+	}
+
 	return &program;
 }
 
 void ProcessShaderUpdates(const Engine& engine) {
 	if (UpdateShaderDefines(engine)) {
+		for (auto& [key, shader] : ShaderCache) {
+			shader.invalidate();
+		}
 		for (auto& [key, program] : ProgramCache) {
-			if (program.vsh) { program.vsh->invalidate(); }
-			if (program.fsh) { program.fsh->invalidate(); }
 			program.invalidate();
 		}
 	}
@@ -289,4 +298,26 @@ void Shader::invalidate() {
 void Program::invalidate() {
 	if (gl_program) { glDeleteProgram(gl_program); }
 	gl_program = 0;
+}
+
+GLint Program::location(const DefaultUniforms::Item& uniform) {
+	for (uint32_t i = 0; i < CountOf(DefaultUniforms::all); i++) {
+		if (DefaultUniforms::all[i].hash == uniform.hash) {
+			return uniform_locations[i];
+		}
+	}
+	return glGetUniformLocation(gl_program, uniform.name);
+}
+
+template<> void Program::uniform<float>(const DefaultUniforms::Item& uniform, float value) {
+	glUniform1f(location(uniform), value);
+}
+template<> void Program::uniform<vec2>(const DefaultUniforms::Item& uniform, vec2 value) {
+	glUniform2fv(location(uniform), 1, reinterpret_cast<float*>(&value));
+}
+template<> void Program::uniform<vec3>(const DefaultUniforms::Item& uniform, vec3 value) {
+	glUniform3fv(location(uniform), 1, reinterpret_cast<float*>(&value));
+}
+template<> void Program::uniform<vec4>(const DefaultUniforms::Item& uniform, vec4 value) {
+	glUniform4fv(location(uniform), 1, reinterpret_cast<float*>(&value));
 }
