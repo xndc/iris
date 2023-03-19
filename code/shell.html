@@ -90,6 +90,7 @@
 		}
 		var error_handler_triggered = false;
 		window.onerror = function HandleGenericError(msg, url, line, col, err) {
+			error_handler_triggered = true;
 			ShowMessage("error-generic");
 			/* err is undefined on webkit (bug 132945, filed 2014, open as of 2022) */
 			$("#error-generic-log").textContent = err ? err.toString() : msg;
