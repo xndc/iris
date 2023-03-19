@@ -92,10 +92,12 @@ static bool UpdateShaderDefines(const Engine& engine) {
 
 	// Run through all the defines that would be produced to see how large the block needs to be.
 	action = COUNT; defines();
-	ShaderDefineBlock = String(size_required);
+	size_required += 1; // null terminator; needed because of how we use sprintf above
+	ShaderDefineBlock = String(size_required - 1);
 
 	// Run through all the defines again and write them out to the block.
 	action = WRITE; defines();
+	const_cast<uint32_t&>(ShaderDefineBlock._size) = bytes_written;
 
 	LOG_F(INFO, "Generated new shader define block:\n%s", ShaderDefineBlock.cstr);
 
@@ -115,18 +117,16 @@ static void LoadShaderFromDisk(Shader& shader) {
 	}
 
 	GLuint gl_shader = glCreateShader(shader.gl_type);
+	shader.gl_shader = gl_shader;
 
-	if (PLATFORM_DESKTOP) {
-		const GLchar* sources[] = { shader.source_code.cstr };
-		GLint lengths[] = { GLint(shader.source_code.size()) };
-		glShaderSource(gl_shader, CountOf(sources), sources, lengths);
-	} else {
-		const char* version = "#version 300 es\nprecision mediump float;\nprecision mediump int;\n";
-		const char* code = &shader.source_code.cstr[strlen(expected_version) + 1];
-		const GLchar* sources[] = { version, code };
-		GLint lengths[] = { (GLint)strlen(version), (GLint)strlen(code) };
-		glShaderSource(gl_shader, CountOf(sources), sources, lengths);
+	const char* version = "#version 330 core\n";
+	if (!PLATFORM_DESKTOP) {
+		version = "#version 300 es\nprecision mediump float;\nprecision mediump int;\n";
 	}
+	const char* code = &shader.source_code.cstr[strlen(expected_version)];
+	const GLchar* sources[] = { version, ShaderDefineBlock.cstr, code };
+	GLint lengths[] = { (GLint)strlen(version), (GLint)(ShaderDefineBlock.size()), (GLint)strlen(code) };
+	glShaderSource(gl_shader, CountOf(sources), sources, lengths);
 
 	glCompileShader(gl_shader);
 
@@ -155,8 +155,6 @@ static void LoadShaderFromDisk(Shader& shader) {
 			glObjectLabel(GL_SHADER, gl_shader, shader.source_path.size(), shader.source_path.cstr);
 		}
 	#endif
-
-	shader.gl_shader = gl_shader;
 }
 
 VertShader* GetVertShader(const char* path) {
@@ -205,47 +203,54 @@ Program* GetProgram(VertShader* vsh, FragShader* fsh) {
 	program = Program(vsh, fsh);
 	DCHECK_NOTNULL_F(program.vsh);
 	DCHECK_NOTNULL_F(program.fsh);
-	program.gl_program = glCreateProgram();
 
 	auto name = String::format("[%s %s]", program.vsh->source_path.cstr, program.fsh->source_path.cstr);
 	program.name = name;
 
-	glAttachShader(program.gl_program, program.vsh->gl_shader);
-	glAttachShader(program.gl_program, program.fsh->gl_shader);
-	glLinkProgram(program.gl_program);
+	if (program.vsh->gl_shader == 0 || program.fsh->gl_shader == 0) {
+		LOG_F(INFO, "Can't link program as shaders have not been compiled");
+		program.gl_program = 0;
+	}
+
+	GLuint gl_program = glCreateProgram();
+	program.gl_program = gl_program;
+
+	glAttachShader(gl_program, program.vsh->gl_shader);
+	glAttachShader(gl_program, program.fsh->gl_shader);
+	glLinkProgram(gl_program);
 
 	GLint ok, logsize;
-	glGetProgramiv(program.gl_program, GL_LINK_STATUS, &ok);
-	glGetProgramiv(program.gl_program, GL_INFO_LOG_LENGTH, &logsize);
+	glGetProgramiv(gl_program, GL_LINK_STATUS, &ok);
+	glGetProgramiv(gl_program, GL_INFO_LOG_LENGTH, &logsize);
 
 	auto log = String(logsize);
 	if (logsize > 0) {
-		glGetProgramInfoLog(program.gl_program, logsize, NULL, log.mut());
+		glGetProgramInfoLog(gl_program, logsize, NULL, log.mut());
 	}
 
 	if (!ok) {
-		LOG_F(ERROR, "Failed to link program %u %s:\n%s", program.gl_program, name.cstr, log.cstr);
+		LOG_F(ERROR, "Failed to link program %u %s:\n%s", gl_program, name.cstr, log.cstr);
 		return &program;
 	}
 
 	if (logsize > 0) {
-		LOG_F(WARNING, "Linked program %u %s with warnings:\n%s", program.gl_program, name.cstr, log.cstr);
+		LOG_F(WARNING, "Linked program %u %s with warnings:\n%s", gl_program, name.cstr, log.cstr);
 	} else {
-		LOG_F(INFO, "Linked program %u %s", program.gl_program, name.cstr);
+		LOG_F(INFO, "Linked program %u %s", gl_program, name.cstr);
 	}
 
 	#if !PLATFORM_WEB
 		if (glObjectLabel) {
-			glObjectLabel(GL_PROGRAM, program.gl_program, name.size(), name.cstr);
+			glObjectLabel(GL_PROGRAM, gl_program, name.size(), name.cstr);
 		}
 	#endif
 
 	for (uint32_t i = 0; i < CountOf(DefaultUniforms::all); i++) {
-		program.uniform_locations[i] = glGetUniformLocation(program.gl_program, DefaultUniforms::all[i].name);
+		program.uniform_locations[i] = glGetUniformLocation(gl_program, DefaultUniforms::all[i].name);
 	}
 
 	for (const DefaultAttributes::Item& attrib : DefaultAttributes::all) {
-		glBindAttribLocation(program.gl_program, attrib.index, attrib.name);
+		glBindAttribLocation(gl_program, attrib.index, attrib.name);
 	}
 
 	return &program;
@@ -291,12 +296,12 @@ void ProcessShaderUpdates(const Engine& engine) {
 }
 
 void Shader::invalidate() {
-	if (gl_shader) { glDeleteShader(gl_shader); }
+	if (gl_shader && !PLATFORM_WEB) { glDeleteShader(gl_shader); }
 	gl_shader = 0;
 }
 
 void Program::invalidate() {
-	if (gl_program) { glDeleteProgram(gl_program); }
+	if (gl_program && !PLATFORM_WEB) { glDeleteProgram(gl_program); }
 	gl_program = 0;
 }
 
