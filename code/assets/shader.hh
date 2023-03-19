@@ -16,17 +16,20 @@ struct Shader {
 	GLuint gl_shader;
 	Shader() = default;
 	Shader(Type type, GLenum gl_type): type{type}, gl_type{gl_type} {}
+	void invalidate();
 };
 
 struct VertShader : Shader {};
 struct FragShader : Shader {};
 
 struct Program {
-	VertShader* vsh = nullptr;
-	FragShader* fsh = nullptr;
-	GLuint gl_program = 0;
+	VertShader* vsh;
+	FragShader* fsh;
+	GLuint gl_program;
+	String name;
 	Program() = default;
 	Program(VertShader* vsh, FragShader* fsh): vsh{vsh}, fsh{fsh} {}
+	void invalidate();
 };
 
 VertShader* GetVertShader(const char* path);

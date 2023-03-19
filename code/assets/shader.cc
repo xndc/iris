@@ -156,9 +156,6 @@ static void LoadShaderFromDisk(Shader& shader) {
 		}
 	#endif
 
-	if (shader.gl_shader) {
-		glDeleteShader(shader.gl_shader);
-	}
 	shader.gl_shader = gl_shader;
 }
 
@@ -166,7 +163,7 @@ VertShader* GetVertShader(const char* path) {
 	Shader& gen_shader = ShaderCache[Hash64(path)];
 	auto& shader = static_cast<VertShader&>(gen_shader);
 
-	if (shader.source_path != nullptr) {
+	if (shader.gl_shader != 0) {
 		DCHECK_EQ_F(shader.type, Shader::VERTEX);
 		return &shader;
 	}
@@ -183,7 +180,7 @@ FragShader* GetFragShader(const char* path) {
 	Shader& gen_shader = ShaderCache[Hash64(path)];
 	auto& shader = static_cast<FragShader&>(gen_shader);
 
-	if (shader.source_path != nullptr) {
+	if (shader.gl_shader != 0) {
 		DCHECK_EQ_F(shader.type, Shader::FRAGMENT);
 		return &shader;
 	}
@@ -201,7 +198,7 @@ Program* GetProgram(VertShader* vsh, FragShader* fsh) {
 	uint64_t hash = Hash64(reinterpret_cast<char*>(key));
 	Program& program = ProgramCache[hash];
 
-	if (program.vsh != nullptr && program.fsh != nullptr) {
+	if (program.gl_program != 0) {
 		return &program;
 	}
 
@@ -211,6 +208,7 @@ Program* GetProgram(VertShader* vsh, FragShader* fsh) {
 	program.gl_program = glCreateProgram();
 
 	auto name = String::format("[%s %s]", program.vsh->source_path.cstr, program.fsh->source_path.cstr);
+	program.name = name;
 
 	glAttachShader(program.gl_program, program.vsh->gl_shader);
 	glAttachShader(program.gl_program, program.fsh->gl_shader);
@@ -246,5 +244,21 @@ Program* GetProgram(VertShader* vsh, FragShader* fsh) {
 }
 
 void ProcessShaderUpdates(const Engine& engine) {
-	UpdateShaderDefines(engine);
+	if (UpdateShaderDefines(engine)) {
+		for (auto& [key, program] : ProgramCache) {
+			program.invalidate();
+		}
+	}
+}
+
+void Shader::invalidate() {
+	if (gl_shader) { glDeleteShader(gl_shader); }
+	gl_shader = 0;
+}
+
+void Program::invalidate() {
+	if (vsh) { vsh->invalidate(); }
+	if (fsh) { fsh->invalidate(); }
+	if (gl_program) { glDeleteProgram(gl_program); }
+	gl_program = 0;
 }
