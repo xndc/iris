@@ -15,6 +15,7 @@
 #include "scene/gameobject.hh"
 #include "assets/asset_loader.hh"
 #include "assets/texture.hh"
+#include "assets/mesh.hh"
 #include "assets/model.hh"
 #include "assets/shader.hh"
 
@@ -47,6 +48,7 @@ SDLMAIN_DECLSPEC int main(int argc, char* argv[]) {
 	gl_context = GLCreateContext(window);
 	GLMakeContextCurrent(window, gl_context);
 
+	CreateDefaultMeshes();
 	InitAssetLoader();
 
 	if (SDL_GL_SetSwapInterval(-1) == -1) {
@@ -208,7 +210,15 @@ static void loop(void) {
 
 	glViewport(0, 0, engine.display_w, engine.display_h);
 	glClearColor(0.3f, 0.4f, 0.55f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClearDepth(0.0f); // reverse Z
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glUseProgram(prog->gl_program);
+	glUniform2f(glGetUniformLocation(prog->gl_program, "FramebufferSize"),
+		float(engine.display_w), float(engine.display_h));
+	glBindVertexArray(DefaultMeshes::QuadXZ.gl_vertex_array);
+	glDrawElements(DefaultMeshes::QuadXZ.ptype.gl_enum(), DefaultMeshes::QuadXZ.index_buffer.total_components(),
+		DefaultMeshes::QuadXZ.index_buffer.ctype.gl_enum(), nullptr);
 
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);

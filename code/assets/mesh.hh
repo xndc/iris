@@ -206,6 +206,13 @@ struct Buffer {
 	GLuint gpu_handle = 0;
 	// Has this buffer been uploaded to the GPU? (Not the same thing as gpu_handle != 0)
 	bool loaded = false;
+
+	constexpr Buffer() = default;
+	template<typename T> constexpr Buffer(BufferUsage usage, uint32_t size, T* cpu_buffer):
+		usage{usage}, size{size}, cpu_buffer{(uint8_t*)(cpu_buffer)} {}
+
+	// Upload this buffer to the GPU, if not already uploaded.
+	Buffer* upload();
 };
 
 struct BufferView {
@@ -217,13 +224,12 @@ struct BufferView {
 	uint32_t offset = 0;
 
 	constexpr BufferView() {}
-	constexpr BufferView(Buffer* buffer, ElementType etype, ComponentType ctype, uint32_t elements):
-		buffer{buffer}, etype{etype}, ctype{ctype}, elements{elements} {}
+	constexpr BufferView(Buffer* buffer, ElementType etype, ComponentType ctype, uint32_t elements);
 
 	// Total number of components in this BufferView.
-	constexpr uint32_t components() const { return elements * etype.components(); }
+	constexpr uint32_t total_components() const { return elements * etype.components(); }
 	// Total size of this BufferView, in bytes.
-	constexpr uint32_t size() const { return components() * ctype.bytes(); }
+	constexpr uint32_t size() const { return total_components() * ctype.bytes(); }
 	// Distance between elements, in bytes.
 	constexpr uint32_t stride() const { return etype.components() * ctype.bytes(); }
 };
@@ -241,4 +247,18 @@ struct Mesh {
 	// Axis-aligned bounding box for this mesh. Assumed not to exist if half-extents are all zero.
 	vec3 aabb_half_extents = vec3(0);
 	vec3 aabb_center = vec3(0);
+	// Computes this mesh's axis-aligned bounding box from its staged Position buffer. Returns true
+	// if successful or false if the buffer hasn't been set up, or has already been uploaded.
+	bool compute_aabb();
+
+	// Upload this mesh to the GPU, if not already uploaded. Uploads any staged buffers and
+	// retrieves an OpenGL Vertex Array Object.
+	Mesh* upload();
 };
+
+namespace DefaultMeshes {
+	extern Mesh QuadXZ;
+	extern Mesh Cube;
+}
+
+void CreateDefaultMeshes();

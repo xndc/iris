@@ -39,6 +39,7 @@ add_executable(Main
 	"code/graphics/opengl.cc"
 	"code/assets/asset_loader.cc"
 	"code/assets/texture.cc"
+	"code/assets/mesh.cc"
 	"code/assets/model.cc"
 	"code/assets/shader.cc"
 	"code/scene/camera.cc"

@@ -430,19 +430,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 				debug_str = String::format("%s %s(acc=%u)", debug_str.cstr, attr.gltf_name, ibv);
 			}
 
-			BufferView& position = mesh.vertex_attribs[DefaultAttributes::Position.index];
-			if (position.buffer && position.etype.v == ElementType::VEC3 && position.ctype.v == ComponentType::F32) {
-				vec3 aabb_min = { INFINITY,  INFINITY,  INFINITY};
-				vec3 aabb_max = {-INFINITY, -INFINITY, -INFINITY};
-				for (size_t i = 0; i < position.elements; i++) {
-					uint8_t* p = &position.buffer->cpu_buffer[position.offset + 3 * i * sizeof(float)];
-					vec3* vp = reinterpret_cast<vec3*>(p); // NOTE: needs -fno-strict-aliasing
-					aabb_min = glm::min(aabb_min, *vp);
-					aabb_max = glm::max(aabb_min, *vp);
-				}
-				mesh.aabb_center = (aabb_min + aabb_max) / vec3(2.0f);
-				mesh.aabb_half_extents = aabb_max - mesh.aabb_center;
-			}
+			mesh.compute_aabb();
 
 			LOG_F(INFO, "-> mesh=%u prim=%u [%p] mat=%u %s %s", igltfmesh, iprim, &mesh, imat,
 				mesh.ptype.name(), debug_str.cstr);
@@ -468,35 +456,13 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 	// Upload buffers to the GPU now that we have usage info for them
 	uint32_t buffer_bytes_used = 0;
 	for (uint32_t ibuf = 0; ibuf < buffers.size(); ibuf++) {
-		Buffer& buffer = *buffers[ibuf];
-		GLenum target = buffer.usage.gl_target();
-		glBindBuffer(target, buffer.gpu_handle);
-		glBufferData(target, buffer.size, buffer.cpu_buffer, GL_STATIC_DRAW);
-		glBindBuffer(target, 0);
-		buffer_bytes_used += buffer.size;
+		buffers[ibuf]->upload();
+		buffer_bytes_used += buffers[ibuf]->size;
 	}
 
 	// Set up GL vertex array object for each mesh and enable vertex attribute arrays
 	for (uint32_t imesh = 0; imesh < meshes.size(); imesh++) {
-		Mesh& mesh = *meshes[imesh];
-		glGenVertexArrays(1, &mesh.gl_vertex_array);
-		glBindVertexArray(mesh.gl_vertex_array);
-		if (mesh.index_buffer.buffer) {
-			Buffer& buffer = *mesh.index_buffer.buffer;
-			glBindBuffer(buffer.usage.gl_target(), buffer.gpu_handle);
-		}
-		for (uint32_t iattr = 0; iattr < mesh.MaxVertexAttribs; iattr++) {
-			if (mesh.vertex_attribs[iattr].buffer) {
-				BufferView& bufview = mesh.vertex_attribs[iattr];
-				Buffer& buffer = *bufview.buffer;
-				glBindBuffer(buffer.usage.gl_target(), buffer.gpu_handle);
-				GLuint location = DefaultAttributes::all[iattr].index;
-				glEnableVertexAttribArray(location);
-				glVertexAttribPointer(location, bufview.components(), bufview.ctype.gl_enum(), false,
-					bufview.stride(), nullptr);
-			}
-		}
-		glBindVertexArray(0);
+		meshes[imesh]->upload();
 	}
 
 	model.buffers = std::move(buffers);
