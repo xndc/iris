@@ -51,6 +51,15 @@ SDLMAIN_DECLSPEC int main(int argc, char* argv[]) {
 	CreateDefaultMeshes();
 	InitAssetLoader();
 
+	// This engine uses reverse-Z (0.0f is far) for higher precision. To actually get this precision
+	// increase, we have to set the Z clip-space bounds to [0,1] instead of the default [-1,1]. This
+	// isn't supported on WebGL, GLES and macOS; we have to live with bad precision there.
+	if (glClipControl) {
+		glClipControl(GL_LOWER_LEFT, GL_ZERO_TO_ONE);
+	} else if (glDepthRangedNV) {
+		glDepthRangedNV(-1.0f, 1.0f);
+	}
+
 	if (SDL_GL_SetSwapInterval(-1) == -1) {
 		SDL_GL_SetSwapInterval(1);
 	}
