@@ -206,7 +206,6 @@ function(ide_add_source_files target subdir)
 			continue()
 		endif()
 		# Add file to target as header:
-		message(STATUS "Adding ${source_file} to target")
 		set_source_files_properties(${source_file} PROPERTIES HEADER_FILE_ONLY ON)
 		target_sources(${target} PRIVATE ${source_file})
 	endforeach()
