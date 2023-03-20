@@ -6,6 +6,7 @@ struct Engine;
 struct Camera : GameObject {
 	static constexpr GameObjectType TypeTag = {"Camera"};
 	const GameObjectType& Type() const override { return TypeTag; }
+	const size_t Size() const override { return sizeof(*this); }
 
 	enum Projection {
 		ORTHOGRAPHIC,

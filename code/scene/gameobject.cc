@@ -3,13 +3,14 @@
 
 #include <vector>
 
+static uint32_t GameObject_NextUniqueID = 1;
+
 GameObject::GameObject(const char* name) : assigned_name{name ? String::copy(name) : nullptr} {
-	static uint32_t next_id = 1;
-	const_cast<uint32_t&>(unique_id) = next_id++;
+	const_cast<uint32_t&>(unique_id) = GameObject_NextUniqueID++;
 }
 
-const String GameObject::Name() const {
-	if (assigned_name) { String::view(assigned_name); }
+String GameObject::Name() const {
+	if (assigned_name) { return String::view(assigned_name); }
 	return String::format("%s#%u", Type().name, unique_id);
 }
 
@@ -70,8 +71,9 @@ GameObject::ChildIterator& GameObject::ChildIterator::operator++() {
 	return *this;
 }
 
-GameObject* GameObject::AddLink(GameObject* object) {
+GameObject* GameObject::Add(GameObject* object) {
 	if (ExpectFalse(object == nullptr)) { return nullptr; }
+	object->parent = this;
 	// We'll want to find the first free slot in any node, since slots can be freed up by deletions
 	ChildListNode* node = &child_list;
 	while (node != nullptr) {
@@ -89,10 +91,23 @@ GameObject* GameObject::AddLink(GameObject* object) {
 	Panic("OOM in GameObject::Add: failed to allocate ChildListNode");
 }
 
-GameObject* GameObject::Add(GameObject* object) {
-	if (ExpectFalse(object == nullptr)) { return nullptr; }
-	object->parent = this;
-	return AddLink(object);
+GameObject* GameObject::AddCopy(GameObject* blueprint) {
+	void* src = reinterpret_cast<void*>(blueprint);
+	void* dst = malloc(blueprint->Size());
+	memcpy(dst, src, blueprint->Size());
+
+	GameObject* copy = reinterpret_cast<GameObject*>(dst);
+	copy->parent = this;
+	copy->blueprint = blueprint;
+	copy->assigned_name = String::copy(blueprint->assigned_name);
+	const_cast<uint32_t&>(copy->unique_id) = GameObject_NextUniqueID++;
+
+	memset(&copy->child_list, 0, sizeof(copy->child_list));
+	for (GameObject& child : *blueprint) {
+		copy->AddCopy(&child);
+	}
+
+	return this->Add(copy);
 }
 
 void GameObject::Delete() {
@@ -146,33 +161,21 @@ GameObject::~GameObject() {
 	}
 }
 
-void GameObject::Recurse(RecurseMode mode, bool follow_links, std::function<void(GameObject&)> func,
-	bool internal_increment_tag)
+void GameObject::Recurse(std::function<void(GameObject&)> before, std::function<void(GameObject&)> after)
 {
-	static uint8_t new_recurse_tag = 0;
-	if (internal_increment_tag) {
-		new_recurse_tag++;
-	}
-	recurse_tag = new_recurse_tag;
-	if (mode == RecurseMode::ParentBeforeChildren) {
-		func(*this);
-	}
+	if (before) { before(*this); }
 	for (GameObject& child : *this) {
-		if (child.recurse_tag != new_recurse_tag && (follow_links || child.parent == parent)) {
-			child.Recurse(mode, follow_links, func, false);
-		}
+		child.Recurse(before, after);
 	}
-	if (mode == RecurseMode::ChildrenBeforeParent) {
-		func(*this);
-	}
+	if (after) { after(*this); }
 }
 
 void GameObject::RecursiveUpdate(Engine& engine) {
-	Recurse(RecurseMode::ChildrenBeforeParent, true, [&](GameObject& obj) { obj.Update(engine); });
+	Recurse([&](GameObject& obj) { obj.Update(engine); });
 }
 
 void GameObject::RecursiveUpdateTransforms() {
-	Recurse(RecurseMode::ParentBeforeChildren, true, [&](GameObject& obj) {
+	Recurse([&](GameObject& obj) {
 		if (obj.parent == nullptr) {
 			const_cast<vec3&>(obj.world_position) = obj.position;
 			const_cast<vec3&>(obj.world_scale) = obj.scale;
@@ -191,5 +194,10 @@ void GameObject::RecursiveUpdateTransforms() {
 }
 
 void GameObject::RecursiveLateUpdate(Engine& engine) {
-	Recurse(RecurseMode::ChildrenBeforeParent, true, [&](GameObject& obj) { obj.LateUpdate(engine); });
+	Recurse(nullptr, [&](GameObject& obj) { obj.LateUpdate(engine); });
+}
+
+String GameObject::DebugName() {
+	return String::format("%s <%jx> [%.02f %.02f %.02f]", Name().cstr, uintptr_t(this),
+		position.x, position.y, position.z);
 }

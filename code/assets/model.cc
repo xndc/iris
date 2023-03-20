@@ -322,11 +322,11 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 	// Extract scene graph into a GameObject:
 	// TODO: Support GLTF scenes
 	JSON_Array* jnodes  = json_object_get_array(root, "nodes");
-	model.root_object = new GameObject();
+	model.root_object = new GameObject(String::format("Model %s", model.display_name.cstr));
 	auto objects = std::vector<GameObject*>(json_array_get_count(jnodes));
 	// Parent all nodes to root object to begin with
 	for (uint32_t inode = 0; inode < json_array_get_count(jnodes); inode++) {
-		String name = String::format("%s node %u", model.display_name.cstr, inode);
+		String name = String::format("Node %s #%u", model.display_name.cstr, inode);
 		objects[inode] = model.root_object->AddNew<GameObject>(name);
 	}
 	// Process nodes: reparent, set transforms

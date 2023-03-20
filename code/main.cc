@@ -94,7 +94,8 @@ SDLMAIN_DECLSPEC int main(int argc, char* argv[]) {
 	// znear=0.5f results in reasonably high depth precision even without clip-control support
 	engine.cam_main = scene->Add(Camera::NewInfPerspective(0.5f, 90.0f));
 
-	scene->AddLink(GetModelFromGLTF("data/models/Duck/Duck.gltf")->root_object);
+	Model* model = GetModelFromGLTF("data/models/Duck/Duck.gltf");
+	scene->AddCopy(model->root_object);
 
 	#if defined(EMSCRIPTEN)
 		emscripten_set_main_loop(loop, 0, true);
@@ -229,9 +230,12 @@ static void loop(void) {
 	scene->RecursiveLateUpdate(engine);
 
 	if (engine.this_frame.n == 10) {
-		scene->Recurse(GameObject::RecurseMode::ParentBeforeChildren, true, [&](GameObject& obj) {
-			LOG_F(INFO, "* %s", obj.DebugName().cstr);
-		});
+		char spaces[] = "                                                  ";
+		uint32_t indent = 0;
+		scene->Recurse([&](GameObject& obj) {
+			LOG_F(INFO, "%s* %s", &spaces[sizeof(spaces) - indent - 1], obj.DebugName().cstr);
+			indent++;
+		}, [&](GameObject& obj) { indent--; });
 	}
 
 	engine.this_frame.t_update = (SDL_GetPerformanceCounter() - engine.initial_t) * msec_per_tick;

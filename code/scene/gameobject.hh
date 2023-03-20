@@ -25,17 +25,20 @@ struct GameObjectType {
  * virtual methods for responding to events.
  *
  * GameObjects should always be heap-allocated with new. They may call delete on themselves.
- *
- * In addition to parent-child relationships, GameObjects can also model links. Use AddLink() to
- * add a child GameObject as a link. This is similar to Prefabs or Blueprints in other engines.
  */
 struct GameObject {
 	// Unique tag for this GameObject subclass. Each subclass should have its own tag and Type().
 	static constexpr GameObjectType TypeTag = {"GameObject"};
 	virtual const GameObjectType& Type() const { return TypeTag; }
 
+	// Size of this GameObject subclass in bytes. Each subclass should implement this.
+	virtual const size_t Size() const { return sizeof(*this); }
+
 	// Pointer to this object's direct parent, or nullptr if this object is the root of a scene.
 	GameObject* parent = nullptr;
+
+	// Pointer to the object this one was copied from, if one exists.
+	GameObject* blueprint = nullptr;
 
 	struct ChildListNode {
 		GameObject* objects[15] = {nullptr};
@@ -76,16 +79,13 @@ struct GameObject {
 	// Unique number assigned to this object. Set by the base constructor, shouldn't be changed.
 	const uint32_t unique_id = 0;
 
-	// Internal tag used by Recurse() to determine if this object has been touched.
-	uint8_t recurse_tag = 0;
-
 	// If true, this GameObject has been marked for deletion.
 	bool deleted : 1 = false;
 
 	GameObject(const char* name = nullptr);
 
 	// Returns the name assigned to this object, or an auto-generated one.
-	const String Name() const;
+	String Name() const;
 	String Name();
 
 	// Determines if this object has any direct children.
@@ -126,16 +126,9 @@ struct GameObject {
 		return static_cast<T*>(Add(static_cast<GameObject*>(object)));
 	}
 
-	// Add a GameObject to the subject as a link. Returns a pointer to the given object. Linked
-	// GameObjects will not have their parent changed, and can be linked to from multiple objects
-	// in the scene graph.
-	// FIXME: Prevent calling code from creating recursive links, maybe?
-	GameObject* AddLink(GameObject* object);
-
-	// Add an already allocated GameObject to the subject. Returns a pointer to the given object.
-	template<typename T> GameObject* AddLink(T& object) {
-		return AddLink(static_cast<GameObject*>(object));
-	}
+	// Add a GameObject tree to the subject by copying it. Returns a pointer to the copy.
+	// This needs to know how much space to allocate, so it can only be used as a template.
+	GameObject* AddCopy(GameObject* blueprint);
 
 	// Marks this GameObject for deletion. It will no longer be returned by iterators or operator[].
 	// This will also mark any child GameObjects for deletion.
@@ -156,36 +149,24 @@ struct GameObject {
 	// object's world-space transform has been computed.
 	virtual void LateUpdate(Engine& engine) {}
 
-	enum class RecurseMode {
-		ParentBeforeChildren,
-		ChildrenBeforeParent,
-	};
-
-	// Recursively calls a function for every object reachable from this one. Follows links if
-	// requested, but treats linked-to objects as roots and only processes each root once.
-	void Recurse(RecurseMode mode, bool follow_links, std::function<void(GameObject&)> func,
-		bool internal_increment_tag = true);
+	// Recursively calls a function for every object reachable from this one. Calls one function
+	// before recursing over this object's children, and one function after.
+	void Recurse(std::function<void(GameObject&)> before, std::function<void(GameObject&)> after = nullptr);
 
 	// Recursively calls Update for every object reachable from this one. Should be called once
-	// from the engine's update phase, on a scene graph root. Follows links, but treats linked-to
-	// objects as roots and only processes each root once.
+	// from the engine's update phase, on a scene graph root.
 	void RecursiveUpdate(Engine& engine);
 
 	// Recursively updates the world-space transforms of every object reachable from this one.
-	// Should be called once from the engine's update phase, on a scene graph root. Follows links,
-	// but treats linked-to objects as roots and only processes each root once.
+	// Should be called once from the engine's update phase, on a scene graph root.
 	void RecursiveUpdateTransforms();
 
 	// Recursively calls LateUpdate for every object reachable from this one. Should be called once
-	// from the engine's update phase, on a scene graph root. Follows links, but treats linked-to
-	// objects as roots and only processes each root once.
+	// from the engine's update phase, on a scene graph root.
 	void RecursiveLateUpdate(Engine& engine);
 
 	// Returns a debug string for this GameObject.
-	virtual String DebugName() const {
-		return String::format("%s <%jx> [%.02f %.02f %.02f]", Name().cstr, uintptr_t(this),
-			position.x, position.y, position.z);
-	}
+	virtual String DebugName();
 };
 
 struct Mesh;
@@ -194,6 +175,7 @@ struct Material;
 struct MeshInstance : GameObject {
 	static constexpr GameObjectType TypeTag = {"MeshInstance"};
 	const GameObjectType& Type() const override { return TypeTag; }
+	const size_t Size() const override { return sizeof(*this); }
 
 	Mesh* mesh;
 	Material* material;
