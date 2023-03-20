@@ -34,9 +34,6 @@ struct GameObject {
 	static constexpr GameObjectType TypeTag = {"GameObject"};
 	virtual const GameObjectType& Type() const { return TypeTag; }
 
-	// Name assigned to this GameObject. It doesn't have to be unique.
-	String name;
-
 	// Pointer to this object's direct parent, or nullptr if this object is the root of a scene.
 	GameObject* parent = nullptr;
 
@@ -73,15 +70,23 @@ struct GameObject {
 	// read-only property that is set based on the local transform after Update.
 	mat4 world_transform = mat4(1);
 
+	// Name assigned to this object, or nullptr if none. Use Name() to get a printable version.
+	String assigned_name = nullptr;
+
+	// Unique number assigned to this object. Set by the base constructor, shouldn't be changed.
+	const uint32_t unique_id = 0;
+
 	// Internal tag used by Recurse() to determine if this object has been touched.
 	uint8_t recurse_tag = 0;
 
 	// If true, this GameObject has been marked for deletion.
 	bool deleted : 1 = false;
 
-	// Default constructor. Assigns an automatically generated name to the object.
-	GameObject();
-	GameObject(const char* name): name{String::copy(name)} {}
+	GameObject(const char* name = nullptr);
+
+	// Returns the name assigned to this object, or an auto-generated one.
+	const String Name() const;
+	String Name();
 
 	// Determines if this object has any direct children.
 	bool HasChildren() const;
@@ -178,7 +183,7 @@ struct GameObject {
 
 	// Returns a debug string for this GameObject.
 	virtual String DebugName() const {
-		return String::format("%s <%jx> \"%s\" [%.02f %.02f %.02f]", Type().name, uintptr_t(this), name.cstr,
+		return String::format("%s <%jx> [%.02f %.02f %.02f]", Name().cstr, uintptr_t(this),
 			position.x, position.y, position.z);
 	}
 };

@@ -3,9 +3,19 @@
 
 #include <vector>
 
-GameObject::GameObject() {
-	static uint32_t next_idx = 1;
-	name = String::format("%s #%u", this->Type().name, next_idx++);
+GameObject::GameObject(const char* name) : assigned_name{name ? String::copy(name) : nullptr} {
+	static uint32_t next_id = 1;
+	const_cast<uint32_t&>(unique_id) = next_id++;
+}
+
+const String GameObject::Name() const {
+	if (assigned_name) { String::view(assigned_name); }
+	return String::format("%s#%u", Type().name, unique_id);
+}
+
+String GameObject::Name() {
+	if (!assigned_name) { assigned_name = const_cast<const GameObject*>(this)->Name(); }
+	return String::view(assigned_name);
 }
 
 bool GameObject::HasChildren() const {
