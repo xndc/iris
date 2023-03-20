@@ -4,7 +4,8 @@
 struct Engine;
 
 struct Camera : GameObject {
-	Camera(): GameObject{CAMERA} {}
+	static constexpr GameObjectType TypeTag = {"Camera"};
+	const GameObjectType& Type() const override { return TypeTag; }
 
 	enum Projection {
 		ORTHOGRAPHIC,
@@ -47,7 +48,7 @@ struct Camera : GameObject {
 	Derived this_frame;
 	Derived last_frame;
 
-	static Camera* orthographic(float znear, float zfar, float zoom) {
+	static Camera* NewOrthographic(float znear, float zfar, float zoom) {
 		Camera* camera = new Camera();
 		camera->projection = ORTHOGRAPHIC;
 		camera->input.znear = znear;
@@ -56,7 +57,7 @@ struct Camera : GameObject {
 		return camera;
 	}
 
-	static Camera* perspective(float znear, float zfar, float hfov_deg) {
+	static Camera* NewPerspective(float znear, float zfar, float hfov_deg) {
 		Camera* camera = new Camera();
 		camera->projection = PERSPECTIVE_REVZ;
 		camera->input.znear = znear;
@@ -65,7 +66,7 @@ struct Camera : GameObject {
 		return camera;
 	}
 
-	static Camera* inf_perspective(float znear, float hfov_deg) {
+	static Camera* NewInfPerspective(float znear, float hfov_deg) {
 		Camera* camera = new Camera();
 		camera->projection = INFINITE_PERSPECTIVE_REVZ;
 		camera->input.znear = znear;
@@ -73,5 +74,5 @@ struct Camera : GameObject {
 		return camera;
 	}
 
-	void update(const Engine& engine);
+	void LateUpdate(Engine& engine) override;
 };

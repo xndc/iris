@@ -30,6 +30,7 @@ static SDL_GLContext gl_context;
 static Engine engine;
 static ImFont* font_inter_16;
 static ImFont* font_inter_14;
+static GameObject* scene;
 
 SDLMAIN_DECLSPEC int main(int argc, char* argv[]) {
 	InitDebugSystem(argc, argv);
@@ -50,6 +51,7 @@ SDLMAIN_DECLSPEC int main(int argc, char* argv[]) {
 
 	CreateDefaultMeshes();
 	InitAssetLoader();
+	ProcessShaderUpdates(engine);
 
 	// This engine uses reverse-Z (0.0f is far) for higher precision. To actually get this precision
 	// increase, we have to set the Z clip-space bounds to [0,1] instead of the default [-1,1]. This
@@ -86,6 +88,13 @@ SDLMAIN_DECLSPEC int main(int argc, char* argv[]) {
 
 	ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
 	ImGui_ImplOpenGL3_Init();
+
+	scene = new GameObject();
+
+	// znear=0.5f results in reasonably high depth precision even without clip-control support
+	engine.cam_main = scene->Add(Camera::NewInfPerspective(0.5f, 90.0f));
+
+	scene->AddLink(GetModelFromGLTF("data/models/Duck/Duck.gltf")->root_object);
 
 	#if defined(EMSCRIPTEN)
 		emscripten_set_main_loop(loop, 0, true);
@@ -211,11 +220,19 @@ static void loop(void) {
 
 	ImGui::Render(); // doesn't emit drawcalls, so it belongs in the update section
 
-	Model* duck = GetModelFromGLTF("data/models/Duck/Duck.gltf");
-
 	VertShader* vsh = GetVertShader("data/shaders/core_fullscreen.vert");
 	FragShader* fsh = GetFragShader("data/shaders/debug_pos_clip.frag");
 	Program* prog = GetProgram(vsh, fsh);
+
+	scene->RecursiveUpdate(engine);
+	scene->RecursiveUpdateTransforms();
+	scene->RecursiveLateUpdate(engine);
+
+	if (engine.this_frame.n == 10) {
+		scene->Recurse(GameObject::RecurseMode::ParentBeforeChildren, true, [&](GameObject& obj) {
+			LOG_F(INFO, "* %s", obj.DebugName().cstr);
+		});
+	}
 
 	engine.this_frame.t_update = (SDL_GetPerformanceCounter() - engine.initial_t) * msec_per_tick;
 

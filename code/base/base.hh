@@ -226,3 +226,16 @@ static FORCEINLINE constexpr T Clamp(const T x, const U min, const V max) {
 	T tmin = T(min), tmax = T(max);
 	return (x < tmin) ? tmin : (x > tmax) ? tmax : x;
 }
+
+// Copies one character array to another, stopping at either the null terminator or after [count]
+// bytes have been copied, including a null terminator. Returns the number of bytes that were
+// actually copied, including the null terminator. Can be used in a constexpr context.
+static constexpr size_t StringCopy(char* dst, const char* src, size_t count) {
+	size_t i = 0;
+	while (i < count - 1 && src[i] != '\0') {
+		dst[i] = src[i];
+		i++;
+	}
+	dst[i] = '\0';
+	return i + 1;
+}

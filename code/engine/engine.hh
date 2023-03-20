@@ -81,15 +81,16 @@ struct Engine {
 	uint32_t display_w = 1280;
 	uint32_t display_h = 720;
 
-	// znear=0.5f results in reasonably high depth precision even without clip-control support
-	Camera* cam_main = Camera::inf_perspective(0.5f, 90.0f);
+	Camera* cam_main = nullptr;
 
-	Camera* cam_shadow = Camera::orthographic(100.0f, -1000.0f, 500.0f);
+#if 0 // FIXME: These should really be properties of DirectionalLight
+	Camera* cam_shadow = Camera::NewOrthographic(100.0f, -1000.0f, 500.0f);
 	uint32_t shadowmap_size = 4096;
 	float shadow_bias_min = 0.0002f;
 	float shadow_bias_max = 0.01f;
 	uint8_t shadow_pcf_taps_x = 2;
 	uint8_t shadow_pcf_taps_y = 2;
+#endif
 
 	VSync vsync = VSync::ADAPTIVE;
 	Tonemapper tonemapper = Tonemapper(Tonemapper::HABLE, 16.0f);

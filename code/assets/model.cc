@@ -221,7 +221,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 		if (json_object_get_boolean(jmat, "doubleSided")) {
 			m.face_culling_mode = GL_NONE;
 		}
-		LOG_F(INFO, "-> material=%u [%p] %s cutoff=%.02f cull=%s", imat, &m,
+		LOG_F(INFO, "-> material=%u <%jx> %s cutoff=%.02f cull=%s", imat, uintptr_t(&m),
 			m.blend_mode == BlendMode::Stippled ? "stippled" :
 			m.blend_mode == BlendMode::Transparent ? "transparent" : "opaque",
 			m.stipple_hard_cutoff,
@@ -326,23 +326,22 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 	auto objects = std::vector<GameObject*>(json_array_get_count(jnodes));
 	// Parent all nodes to root object to begin with
 	for (uint32_t inode = 0; inode < json_array_get_count(jnodes); inode++) {
-		GameObject* node = objects[inode] = new GameObject();
-		node->parent = model.root_object;
+		String name = String::format("%s node %u", model.display_name.cstr, inode);
+		objects[inode] = model.root_object->AddNew<GameObject>(name);
 	}
 	// Process nodes: reparent, set transforms
 	for (uint32_t inode = 0; inode < json_array_get_count(jnodes); inode++) {
-		GameObject* node = objects[inode];
+		GameObject& obj = *(objects[inode]);
 		JSON_Object* jnode = json_array_get_object(jnodes, inode);
 
 		JSON_Array* jchildren = json_object_get_array(jnode, "children");
 		if (jchildren) {
 			for (uint32_t ichild = 0; ichild < json_array_get_count(jchildren); ichild++) {
-				objects[uint32_t(json_array_get_number(jchildren, ichild))]->parent = node;
+				objects[uint32_t(json_array_get_number(jchildren, ichild))]->parent = &obj;
 			}
 		}
 
 		JSON_Array* jmat = json_object_get_array(jnode, "matrix");
-		Transform& nt = node->mut_local();
 		if (jmat) {
 			// We'll have to decompose this into translation, rotation and scale. The GLTF spec says
 			// transform matrices must be decomposable.
@@ -350,14 +349,14 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 			float* fmatrix = reinterpret_cast<float*>(&matrix); // FIXME: Surely glm has a helper for this?
 			for (int i = 0; i < 16; i++) { fmatrix[i] = float(json_array_get_number(jmat, i)); }
 			vec3 skew; vec4 perspective;
-			glm::decompose(matrix, nt.scale, nt.rotation, nt.position, skew, perspective);
+			glm::decompose(matrix, obj.scale, obj.rotation, obj.position, skew, perspective);
 		} else {
 			JSON_Array* jr = json_object_get_array(jnode, "rotation");
 			JSON_Array* jt = json_object_get_array(jnode, "translation");
 			JSON_Array* js = json_object_get_array(jnode, "scale");
-			if (jr) { for (int i = 0; i < 4; i++) { nt.rotation[i] = float(json_array_get_number(jr, i)); } }
-			if (jt) { for (int i = 0; i < 3; i++) { nt.position[i] = float(json_array_get_number(jt, i)); } }
-			if (js) { for (int i = 0; i < 3; i++) { nt.scale[i]    = float(json_array_get_number(js, i)); } }
+			if (jr) { for (int i = 0; i < 4; i++) { obj.rotation[i] = float(json_array_get_number(jr, i)); } }
+			if (jt) { for (int i = 0; i < 3; i++) { obj.position[i] = float(json_array_get_number(jt, i)); } }
+			if (js) { for (int i = 0; i < 3; i++) { obj.scale[i]    = float(json_array_get_number(js, i)); } }
 		}
 	}
 
@@ -393,12 +392,9 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 			// parameters and accessors are the same).
 			meshes[extracted_mesh_idx] = new Mesh();
 			Mesh& mesh = *meshes[extracted_mesh_idx++];
-			MeshInstance* instance = static_cast<MeshInstance*>(objects.emplace_back(new MeshInstance()));
-			instance->parent = objects[inode];
-			instance->mesh = &mesh;
-
 			uint32_t imat = uint32_t(json_object_get_number(jprim, "material"));
-			instance->material = materials[imat];
+
+			objects[inode]->AddNew<MeshInstance>(&mesh, materials[imat]);
 
 			if (json_object_has_value(jprim, "mode") ){
 				mesh.ptype = PrimitiveType::from_gl_enum(GLenum(json_object_get_number(jprim, "mode")));
@@ -432,25 +428,25 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 
 			mesh.compute_aabb();
 
-			LOG_F(INFO, "-> mesh=%u prim=%u [%p] mat=%u %s %s", igltfmesh, iprim, &mesh, imat,
+			LOG_F(INFO, "-> mesh=%u prim=%u <%jx> mat=%u %s %s", igltfmesh, iprim, uintptr_t(&mesh), imat,
 				mesh.ptype.name(), debug_str.cstr);
 		}
 	}
 
 	// Debug output for node graph, now that we've added all of them
-	LOG_F(INFO, "-> root object [%p]", model.root_object);
+	LOG_F(INFO, "-> root object <%jx>", uintptr_t(model.root_object));
 	for (uint32_t inode = 0; inode < objects.size(); inode++) {
-		GameObject* node = objects[inode];
-		const Transform& nt = node->local();
+		GameObject* obj = objects[inode];
 		String extra = "";
-		if (node->type == GameObject::MESH_INSTANCE) {
+		if (obj->Type() == MeshInstance::TypeTag) {
 			MeshInstance* instance = static_cast<MeshInstance*>(objects[inode]);
-			extra = String::format(" mesh=[%p] material=[%p]", instance->mesh, instance->material);
+			extra = String::format(" mesh=<%jx> material=<%jx>",
+				uintptr_t(instance->mesh), uintptr_t(instance->material));
 		}
 		LOG_F(INFO,
-			"-> node=%u [%p] parent=[%p] pos=(%.02f %.02f %.02f) rot=(%.02f %.02f %.02f %.02f)%s",
-			inode, node, node->parent, nt.position.x, nt.position.y, nt.position.z,
-			nt.rotation.x, nt.rotation.y, nt.rotation.z, nt.rotation.w, extra.cstr);
+			"-> node=%u <%jx> parent=<%jx> pos=(%.02f %.02f %.02f) rot=(%.02f %.02f %.02f %.02f)%s",
+			inode, uintptr_t(obj), uintptr_t(obj->parent), obj->position.x, obj->position.y, obj->position.z,
+			obj->rotation.x, obj->rotation.y, obj->rotation.z, obj->rotation.w, extra.cstr);
 	}
 
 	// Upload buffers to the GPU now that we have usage info for them

@@ -58,7 +58,7 @@ static void ProjMatrixInfPerspectiveRev(float vfov_rad, float znear, float inv_a
 	*out_inv_projection = glm::inverse(*out_projection);
 }
 
-void Camera::update(const Engine& engine) {
+void Camera::LateUpdate(Engine& engine) {
 	last_frame = this_frame;
 	this_frame.inv_aspect = float(engine.display_h) / float(engine.display_w);
 
@@ -82,8 +82,7 @@ void Camera::update(const Engine& engine) {
 		} break;
 	}
 
-	// FIXME: Use world-space transform (which we don't compute yet) instead of local
-	this_frame.view = glm::translate(glm::mat4_cast(local().rotation), -local().position);
+	this_frame.view = glm::translate(glm::mat4_cast(world_rotation), -world_position);
 	this_frame.vp = this_frame.proj * this_frame.view;
 
 	#if 0 // FIXME: Allow camera rotation to be specified in Euler angles; would look something like this:
