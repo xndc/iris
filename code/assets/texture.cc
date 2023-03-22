@@ -54,7 +54,7 @@ static void UploadStagedLevels(Texture& texture) {
 
 	for (uint32_t i = 0; i < texture.num_levels; i++) {
 		Texture::Level& l = texture.levels[i];
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, l.width, l.height, format, type, l.staging_buffer);
+		glTexSubImage2D(GL_TEXTURE_2D, i, 0, 0, l.width, l.height, format, type, l.staging_buffer);
 		l.staging_buffer = nullptr;
 	}
 

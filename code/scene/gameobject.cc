@@ -180,10 +180,10 @@ void GameObject::RecursiveUpdateTransforms() {
 			const_cast<vec3&>(obj.world_position) = obj.position;
 			const_cast<vec3&>(obj.world_scale) = obj.scale;
 			const_cast<quat&>(obj.world_rotation) = obj.rotation;
-			mat4 xform = glm::mat4_cast(obj.rotation) * glm::scale(glm::translate(obj.position), obj.scale);
+			mat4 xform = glm::scale(glm::translate(obj.position), obj.scale) * glm::mat4_cast(obj.rotation);
 			const_cast<mat4&>(obj.world_transform) = xform;
 		} else {
-			mat4 xform = glm::mat4_cast(obj.rotation) * glm::scale(glm::translate(obj.position), obj.scale);
+			mat4 xform = glm::scale(glm::translate(obj.position), obj.scale) * glm::mat4_cast(obj.rotation);
 			const_cast<mat4&>(obj.world_transform) = xform * obj.parent->world_transform;
 			vec3 skew; vec4 perspective; // ignored, should be zero
 			glm::decompose(obj.world_transform, const_cast<vec3&>(obj.world_scale),

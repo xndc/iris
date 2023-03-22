@@ -13,6 +13,7 @@
 
 SDL_GLContext GLCreateContext(SDL_Window* window);
 void GLMakeContextCurrent(SDL_Window* window, SDL_GLContext context);
+void GLObjectLabel(GLenum identifier, GLuint name, const char* label);
 
 // Shims the engine needs to run correctly on GLES
 #if !PLATFORM_DESKTOP

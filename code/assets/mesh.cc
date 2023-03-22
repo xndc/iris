@@ -70,7 +70,7 @@ Mesh* Mesh::upload() {
 			GLuint location = DefaultAttributes::all[iattr].index;
 			glEnableVertexAttribArray(location);
 			glVertexAttribPointer(location, bufview.etype.components(), bufview.ctype.gl_enum(), false,
-				bufview.stride(), nullptr);
+				bufview.stride(), reinterpret_cast<const GLvoid*>(bufview.offset));
 		}
 	}
 	glBindVertexArray(0);

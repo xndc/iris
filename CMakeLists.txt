@@ -37,6 +37,7 @@ add_executable(Main
 	"code/base/string.cc"
 	"code/base/filesystem.cc"
 	"code/graphics/opengl.cc"
+	"code/graphics/render.cc"
 	"code/assets/asset_loader.cc"
 	"code/assets/texture.cc"
 	"code/assets/mesh.cc"

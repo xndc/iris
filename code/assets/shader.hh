@@ -39,6 +39,7 @@ struct Program {
 	GLint location(const DefaultUniforms::Item& uniform);
 
 	template<typename T> void uniform(const DefaultUniforms::Item& uniform, T value);
+	template<> void uniform<uint32_t>(const DefaultUniforms::Item& uniform, uint32_t value);
 	template<> void uniform<float>(const DefaultUniforms::Item& uniform, float value);
 	template<> void uniform<vec2>(const DefaultUniforms::Item& uniform, vec2 value);
 	template<> void uniform<vec3>(const DefaultUniforms::Item& uniform, vec3 value);

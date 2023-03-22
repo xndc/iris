@@ -18,6 +18,7 @@
 #include "assets/mesh.hh"
 #include "assets/model.hh"
 #include "assets/shader.hh"
+#include "graphics/render.hh"
 
 #if PLATFORM_WEB
 #include <emscripten.h>
@@ -138,6 +139,7 @@ static void loop(void) {
 	}}
 
 	SDL_GL_GetDrawableSize(window, (int*)&engine.display_w, (int*)&engine.display_h);
+	UpdateRenderTargets(engine);
 
 	engine.this_frame.t_poll = (SDL_GetPerformanceCounter() - engine.initial_t) * msec_per_tick;
 	if (engine.this_frame.t_poll - engine.this_frame.t > 100.0f) {
@@ -147,11 +149,6 @@ static void loop(void) {
 	uint32_t asset_loader_ops_left = 1;
 	while (asset_loader_ops_left) {
 		asset_loader_ops_left = ProcessAssetLoadOperation();
-	}
-
-	if (engine.this_frame.n == 60) {
-		LOG_F(INFO, "Frame %llu", engine.this_frame.n);
-		engine.tonemapper.type = Tonemapper::ACES;
 	}
 
 	ProcessShaderUpdates(engine);
@@ -221,9 +218,12 @@ static void loop(void) {
 
 	ImGui::Render(); // doesn't emit drawcalls, so it belongs in the update section
 
-	VertShader* vsh = GetVertShader("data/shaders/core_fullscreen.vert");
-	FragShader* fsh = GetFragShader("data/shaders/debug_pos_clip.frag");
-	Program* prog = GetProgram(vsh, fsh);
+	static float f = 0.0f;
+	const float dist = 300.0f, height = 300.0f;
+	vec3 pivot = vec3(0.0f, 75.0f, 0.0f);
+	f += 0.01f;
+	engine.cam_main->position = vec3(dist * sinf(f), height + (0.1f * height * sinf(f)), dist * cosf(f));
+	engine.cam_main->rotation = glm::quat_cast(glm::lookAt(engine.cam_main->position, pivot, vec3(0, 1, 0)));
 
 	scene->RecursiveUpdate(engine);
 	scene->RecursiveUpdateTransforms();
@@ -245,11 +245,19 @@ static void loop(void) {
 	glClearDepth(0.0f); // reverse Z
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+#if 0
 	glUseProgram(prog->gl_program);
 	prog->uniform(DefaultUniforms::FramebufferSize, vec2(engine.display_w, engine.display_h));
 	glBindVertexArray(DefaultMeshes::QuadXZ.gl_vertex_array);
 	glDrawElements(DefaultMeshes::QuadXZ.ptype.gl_enum(), DefaultMeshes::QuadXZ.index_buffer.total_components(),
 		DefaultMeshes::QuadXZ.index_buffer.ctype.gl_enum(), nullptr);
+#endif
+
+	VertShader* vsh = GetVertShader("data/shaders/core_transform.vert");
+	FragShader* fsh = GetFragShader("data/shaders/debug_albedo.frag");
+	Program* prog = GetProgram(vsh, fsh);
+	Framebuffer* final = nullptr;
+	Render(engine, scene, engine.cam_main, prog, final);
 
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);

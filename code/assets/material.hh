@@ -88,13 +88,13 @@ struct UniformValue {
 			glm::mat4      f32;
 		} mat4x4;
 	};
-	const char* name = nullptr;
+	DefaultUniforms::Item uniform = DefaultUniforms::all[0];
 	ElementType etype;
 	ComponentType ctype;
 };
 
 struct SamplerBinding {
-	const char* name = nullptr;
+	DefaultUniforms::Item uniform = DefaultUniforms::all[0];
 	Texture* texture = nullptr;
 	Sampler* sampler = nullptr;
 };

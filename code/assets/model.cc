@@ -90,7 +90,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 		buffers[ibuf] = new Buffer();
 		buffers[ibuf]->size = uint32_t(json_object_get_number(jbv, "byteLength"));
 		buffers[ibuf]->cpu_buffer = &buffer_datas[igbuf][offset];
-		buffers[ibuf]->gpu_handle = gl_buffers[igbuf];
+		buffers[ibuf]->gpu_handle = gl_buffers[ibuf];
 	}
 
 	// Convert GLTF accessors to BufferView objects:
@@ -236,10 +236,11 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 			JSON_Object* jtex = json_array_get_object(jtextures, itex);
 			if (jtex && json_object_has_value(jtex, "source") && json_object_has_value(jtex, "sampler")) {
 				SamplerBinding& normal = m.samplers[m.num_samplers++];
-				normal.name = DefaultUniforms::TexNormal.name;
+				normal.uniform = DefaultUniforms::TexNormal;
 				normal.texture = textures[uint32_t(json_object_get_number(jtex, "source"))];
 				normal.sampler = samplers[uint32_t(json_object_get_number(jtex, "sampler"))];
-				LOG_F(INFO, "-> material=%u -> %s gltex=%u", imat, normal.name, normal.texture->gl_texture);
+				LOG_F(INFO, "-> material=%u -> %s gltex=%u", imat, normal.uniform.name,
+					normal.texture->gl_texture);
 			}
 		}
 		JSON_Object* jocctex = json_object_get_object(jmat, "occlusionTexture");
@@ -248,10 +249,11 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 			JSON_Object* jtex = json_array_get_object(jtextures, itex);
 			if (jtex && json_object_has_value(jtex, "source") && json_object_has_value(jtex, "sampler")) {
 				SamplerBinding& occlusion = m.samplers[m.num_samplers++];
-				occlusion.name = DefaultUniforms::TexOcclusion.name;
+				occlusion.uniform = DefaultUniforms::TexOcclusion;
 				occlusion.texture = textures[uint32_t(json_object_get_number(jtex, "source"))];
 				occlusion.sampler = samplers[uint32_t(json_object_get_number(jtex, "sampler"))];
-				LOG_F(INFO, "-> material=%u -> %s gltex=%u", imat, occlusion.name, occlusion.texture->gl_texture);
+				LOG_F(INFO, "-> material=%u -> %s gltex=%u", imat, occlusion.uniform.name,
+					occlusion.texture->gl_texture);
 			}
 		}
 
@@ -261,34 +263,34 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 			JSON_Array* jbaseColorFactor = json_object_get_array(jmr, "baseColorFactor");
 			if (jbaseColorFactor) {
 				UniformValue& const_albedo = m.uniforms[m.num_uniforms++];
-				const_albedo.name = DefaultUniforms::ConstAlbedo.name;
+				const_albedo.uniform = DefaultUniforms::ConstAlbedo;
 				const_albedo.etype = ElementType::VEC4;
 				const_albedo.ctype = ComponentType::F32;
 				const_albedo.vec4.f32.r = float(json_array_get_number(jbaseColorFactor, 0));
 				const_albedo.vec4.f32.g = float(json_array_get_number(jbaseColorFactor, 1));
 				const_albedo.vec4.f32.b = float(json_array_get_number(jbaseColorFactor, 2));
 				const_albedo.vec4.f32.a = float(json_array_get_number(jbaseColorFactor, 3));
-				LOG_F(INFO, "-> material=%u -> %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_albedo.name,
+				LOG_F(INFO, "-> material=%u -> %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_albedo.uniform.name,
 					const_albedo.vec4.f32.r, const_albedo.vec4.f32.g,
 					const_albedo.vec4.f32.b, const_albedo.vec4.f32.a);
 			}
 			if (json_object_has_value(jmr, "metallicFactor")) {
 				UniformValue& const_metallic = m.uniforms[m.num_uniforms++];
-				const_metallic.name = DefaultUniforms::ConstMetallic.name;
+				const_metallic.uniform = DefaultUniforms::ConstMetallic;
 				const_metallic.etype = ElementType::SCALAR;
 				const_metallic.ctype = ComponentType::F32;
 				const_metallic.scalar.f32 = float(json_object_get_number(jmr, "metallicFactor"));
-				LOG_F(INFO, "-> material=%u -> %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_metallic.name,
+				LOG_F(INFO, "-> material=%u -> %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_metallic.uniform.name,
 					const_metallic.vec4.f32.r, const_metallic.vec4.f32.g,
 					const_metallic.vec4.f32.b, const_metallic.vec4.f32.a);
 			}
 			if (json_object_has_value(jmr, "roughnessFactor")) {
 				UniformValue& const_roughness = m.uniforms[m.num_uniforms++];
-				const_roughness.name = DefaultUniforms::ConstRoughness.name;
+				const_roughness.uniform = DefaultUniforms::ConstRoughness;
 				const_roughness.etype = ElementType::SCALAR;
 				const_roughness.ctype = ComponentType::F32;
 				const_roughness.scalar.f32 = float(json_object_get_number(jmr, "roughnessFactor"));
-				LOG_F(INFO, "-> material=%u -> %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_roughness.name,
+				LOG_F(INFO, "-> material=%u -> %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_roughness.uniform.name,
 					const_roughness.vec4.f32.r, const_roughness.vec4.f32.g,
 					const_roughness.vec4.f32.b, const_roughness.vec4.f32.a);
 			}
@@ -298,10 +300,10 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 				JSON_Object* jtex = json_array_get_object(jtextures, itex);
 				if (jtex && json_object_has_value(jtex, "source") && json_object_has_value(jtex, "sampler")) {
 					SamplerBinding& albedo = m.samplers[m.num_samplers++];
-					albedo.name = DefaultUniforms::TexAlbedo.name;
+					albedo.uniform = DefaultUniforms::TexAlbedo;
 					albedo.texture = textures[uint32_t(json_object_get_number(jtex, "source"))];
 					albedo.sampler = samplers[uint32_t(json_object_get_number(jtex, "sampler"))];
-					LOG_F(INFO, "-> material=%u -> %s gltex=%u", imat, albedo.name, albedo.texture->gl_texture);
+					LOG_F(INFO, "-> material=%u -> %s gltex=%u", imat, albedo.uniform.name, albedo.texture->gl_texture);
 				}
 			}
 			JSON_Object* jmetallicRoughnessTexture = json_object_get_object(jmr, "metallicRoughnessTexture");
@@ -310,10 +312,10 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 				JSON_Object* jtex = json_array_get_object(jtextures, itex);
 				if (jtex && json_object_has_value(jtex, "source") && json_object_has_value(jtex, "sampler")) {
 					SamplerBinding& rm = m.samplers[m.num_samplers++];
-					rm.name = DefaultUniforms::TexOccRghMet.name;
+					rm.uniform = DefaultUniforms::TexOccRghMet;
 					rm.texture = textures[uint32_t(json_object_get_number(jtex, "source"))];
 					rm.sampler = samplers[uint32_t(json_object_get_number(jtex, "sampler"))];
-					LOG_F(INFO, "-> material=%u -> %s gltex=%u", imat, rm.name, rm.texture->gl_texture);
+					LOG_F(INFO, "-> material=%u -> %s gltex=%u", imat, rm.uniform.name, rm.texture->gl_texture);
 				}
 			}
 		}

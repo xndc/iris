@@ -54,3 +54,11 @@ void GLMakeContextCurrent(SDL_Window* window, SDL_GLContext context) {
 		}
 	#endif
 }
+
+void GLObjectLabel(GLenum identifier, GLuint name, const char* label) {
+	#if !PLATFORM_WEB
+		if (glObjectLabel) {
+			glObjectLabel(identifier, name, 0, label);
+		}
+	#endif
+}

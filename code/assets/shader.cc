@@ -150,11 +150,7 @@ static void LoadShaderFromDisk(Shader& shader) {
 		LOG_F(INFO, "Compiled shader %u from %s", gl_shader, shader.source_path.cstr);
 	}
 
-	#if !PLATFORM_WEB
-		if (glObjectLabel) {
-			glObjectLabel(GL_SHADER, gl_shader, shader.source_path.size(), shader.source_path.cstr);
-		}
-	#endif
+	GLObjectLabel(GL_SHADER, gl_shader, shader.source_path.cstr);
 }
 
 VertShader* GetVertShader(const char* path) {
@@ -239,11 +235,7 @@ Program* GetProgram(VertShader* vsh, FragShader* fsh) {
 		LOG_F(INFO, "Linked program %u %s", gl_program, name.cstr);
 	}
 
-	#if !PLATFORM_WEB
-		if (glObjectLabel) {
-			glObjectLabel(GL_PROGRAM, gl_program, name.size(), name.cstr);
-		}
-	#endif
+	GLObjectLabel(GL_PROGRAM, gl_program, name.cstr);
 
 	for (uint32_t i = 0; i < CountOf(DefaultUniforms::all); i++) {
 		program.uniform_locations[i] = glGetUniformLocation(gl_program, DefaultUniforms::all[i].name);
@@ -314,6 +306,9 @@ GLint Program::location(const DefaultUniforms::Item& uniform) {
 	return glGetUniformLocation(gl_program, uniform.name);
 }
 
+template<> void Program::uniform<uint32_t>(const DefaultUniforms::Item& uniform, uint32_t value) {
+	glUniform1i(location(uniform), value);
+}
 template<> void Program::uniform<float>(const DefaultUniforms::Item& uniform, float value) {
 	glUniform1f(location(uniform), value);
 }

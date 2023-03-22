@@ -62,11 +62,15 @@ namespace DefaultUniforms {
 	static constexpr Item ConstMetallic  = {"ConstMetallic"};
 	static constexpr Item ConstRoughness = {"ConstRoughness"};
 
+	// Shadow sampler
+	static constexpr Item ShadowMap = {"ShadowMap"};
+
 	static constexpr Item all[] = {
 		RTDiffuse, RTNormal, RTMaterial, RTVelocity, RTColorHDR, RTDepth,
 		FramebufferSize,
 		MatModelViewProjection, InvModelViewProjection, MatModel, InvModel,
 		TexAlbedo, TexNormal, TexOcclusion, TexOccRghMet,
 		ConstAlbedo, ConstMetallic, ConstRoughness,
+		ShadowMap,
 	};
 }
