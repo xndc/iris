@@ -278,10 +278,10 @@ static void loop(void) {
 
 		LOG_F(INFO, "Render lists:");
 		for (RenderListPerView& v : render_list.views) {
-			LOG_F(INFO, "* Camera <%jx> pos=[%.02f %.02f %.02f]", uintptr_t(v.camera),
+			LOG_F(INFO, "* Camera <%p> pos=[%.02f %.02f %.02f]", v.camera,
 				v.camera->world_position.x, v.camera->world_position.y, v.camera->world_position.z);
 			for (auto& [k, m] : v.meshes) {
-				LOG_F(INFO, "  * Mesh <%jx> instances=[%u:%u] (%u)", uintptr_t(m.mesh), m.first_instance,
+				LOG_F(INFO, "  * Mesh <%p> instances=[%u:%u] (%u)", m.mesh, m.first_instance,
 					m.first_instance + m.instance_count - 1, m.instance_count);
 				for (uint32_t i = m.first_instance; i < m.first_instance + m.instance_count; i++) {
 					RenderableMeshInstanceData& rmid = v.mesh_instances[i];

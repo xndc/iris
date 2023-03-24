@@ -198,6 +198,6 @@ void GameObject::RecursiveLateUpdate(Engine& engine) {
 }
 
 String GameObject::DebugName() {
-	return String::format("%s <%jx> [%.02f %.02f %.02f]", Name().cstr, uintptr_t(this),
+	return String::format("%s <%p> [%.02f %.02f %.02f]", Name().cstr, this,
 		position.x, position.y, position.z);
 }

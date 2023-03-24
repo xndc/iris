@@ -221,7 +221,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 		if (json_object_get_boolean(jmat, "doubleSided")) {
 			m.face_culling_mode = GL_NONE;
 		}
-		LOG_F(INFO, "-> material=%u <%jx> %s cutoff=%.02f cull=%s", imat, uintptr_t(&m),
+		LOG_F(INFO, "-> material=%u <%p> %s cutoff=%.02f cull=%s", imat, &m,
 			m.blend_mode == BlendMode::Stippled ? "stippled" :
 			m.blend_mode == BlendMode::Transparent ? "transparent" : "opaque",
 			m.stipple_hard_cutoff,
@@ -430,24 +430,23 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 
 			mesh.compute_aabb();
 
-			LOG_F(INFO, "-> mesh=%u prim=%u <%jx> mat=%u %s %s", igltfmesh, iprim, uintptr_t(&mesh), imat,
+			LOG_F(INFO, "-> mesh=%u prim=%u <%p> mat=%u %s %s", igltfmesh, iprim, &mesh, imat,
 				mesh.ptype.name(), debug_str.cstr);
 		}
 	}
 
 	// Debug output for node graph, now that we've added all of them
-	LOG_F(INFO, "-> root object <%jx>", uintptr_t(model.root_object));
+	LOG_F(INFO, "-> root object <%p>", model.root_object);
 	for (uint32_t inode = 0; inode < objects.size(); inode++) {
 		GameObject* obj = objects[inode];
 		String extra = "";
 		if (obj->Type() == MeshInstance::TypeTag) {
 			MeshInstance* instance = static_cast<MeshInstance*>(objects[inode]);
-			extra = String::format(" mesh=<%jx> material=<%jx>",
-				uintptr_t(instance->mesh), uintptr_t(instance->material));
+			extra = String::format(" mesh=<%p> material=<%p>", instance->mesh, instance->material);
 		}
 		LOG_F(INFO,
-			"-> node=%u <%jx> parent=<%jx> pos=(%.02f %.02f %.02f) rot=(%.02f %.02f %.02f %.02f)%s",
-			inode, uintptr_t(obj), uintptr_t(obj->parent), obj->position.x, obj->position.y, obj->position.z,
+			"-> node=%u <%p> parent=<%p> pos=(%.02f %.02f %.02f) rot=(%.02f %.02f %.02f %.02f)%s",
+			inode, obj, obj->parent, obj->position.x, obj->position.y, obj->position.z,
 			obj->rotation.x, obj->rotation.y, obj->rotation.z, obj->rotation.w, extra.cstr);
 	}
 
