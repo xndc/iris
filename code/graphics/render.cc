@@ -105,52 +105,25 @@ void BindFramebuffer(Framebuffer* framebuffer) {
 	}
 }
 
-void Render(const Engine& engine, GameObject* scene, Camera* camera, Program* program, Framebuffer* framebuffer) {
+void Render(const Engine& engine, RenderList& rlist, Camera* camera, Program* program, Framebuffer* framebuffer) {
 	BindFramebuffer(framebuffer);
 	glUseProgram(program->gl_program);
 
 	program->uniform(DefaultUniforms::FramebufferSize, vec2(engine.display_w, engine.display_h));
 
-	scene->Recurse([&](GameObject& obj) {
-		if (obj.Type() == MeshInstance::TypeTag) {
-			MeshInstance& mi = static_cast<MeshInstance&>(obj);
-			Mesh& mesh = *mi.mesh;
-			Material& mat = *mi.material;
-			mat4 local_to_clip = camera->this_frame.vp * mi.world_transform;
+	// Find per-view render list for this camera
+	auto viewlist_iter = std::find_if(rlist.views.cbegin(), rlist.views.cend(),
+		[&](const RenderListPerView& v) { return v.camera == camera; });
+	CHECK_NE_F(viewlist_iter, rlist.views.end());
+	const RenderListPerView& viewlist = *viewlist_iter;
 
-			if (mesh.aabb_half_extents != vec3(0)) {
-				// See https://fgiesen.wordpress.com/2010/10/17/view-frustum-culling/
-				// Using "method 3" for now, since we don't compute world-space frustum planes yet.
-				vec3 center = mesh.aabb_center, half = mesh.aabb_half_extents;
-				vec4 p[] = {
-					{ center[0] + half[0], center[1] + half[1], center[2] + half[2], 1 },
-					{ center[0] + half[0], center[1] + half[1], center[2] - half[2], 1 },
-					{ center[0] + half[0], center[1] - half[1], center[2] + half[2], 1 },
-					{ center[0] + half[0], center[1] - half[1], center[2] - half[2], 1 },
-					{ center[0] - half[0], center[1] + half[1], center[2] + half[2], 1 },
-					{ center[0] - half[0], center[1] + half[1], center[2] - half[2], 1 },
-					{ center[0] - half[0], center[1] - half[1], center[2] + half[2], 1 },
-					{ center[0] - half[0], center[1] - half[1], center[2] - half[2], 1 },
-				};
-				for (int i = 0; i < countof(p); i++) {
-					p[i] = local_to_clip * p[i];
-				}
-				// Plane equations: -w <= x <= w, -w <= y <= w, zn <= w <= zf
-				float zn = camera->input.znear;
-				float zf = camera->projection == Camera::PERSPECTIVE_REVZ ? camera->input.zfar : INFINITY;
-				bool cullX = true; // true if x is not in [-w, w]
-				bool cullY = true; // true if y is not in [-w, w]
-				bool cullW = true; // true if w is not in [zn, zf]
-				for (int i = 0; i < countof(p); i++) {
-					if (-p[i][3] <= p[i][0] && p[i][0] <= p[i][3]) { cullX = false; }
-					if (-p[i][3] <= p[i][1] && p[i][1] <= p[i][3]) { cullY = false; }
-					if (zn <= p[i][3] && p[i][3] <= zf) { cullW = false; }
-				}
-				if (cullX && cullY && cullW) {
-					return;
-				}
-			}
+	Material* last_material = nullptr;
 
+	for (const auto& [key, rmesh] : viewlist.meshes) {
+		Mesh& mesh = *rmesh.mesh;
+		Material& mat = *rmesh.material;
+
+		if (&mat != last_material) {
 			if (mat.face_culling_mode != GL_NONE) {
 				glEnable(GL_CULL_FACE);
 				glCullFace(mat.face_culling_mode);
@@ -176,19 +149,6 @@ void Render(const Engine& engine, GameObject* scene, Camera* camera, Program* pr
 				glDisable(GL_BLEND);
 			}
 
-			// FIXME: Stupid way to invert a matrix
-			mat4 clip_to_local = glm::inverse(local_to_clip);
-			mat4 local_to_world = glm::inverse(mi.world_transform);
-
-			glUniformMatrix4fv(program->location(DefaultUniforms::MatModelViewProjection),
-				1, false, reinterpret_cast<float*>(&local_to_clip));
-			glUniformMatrix4fv(program->location(DefaultUniforms::InvModelViewProjection),
-				1, false, reinterpret_cast<float*>(&clip_to_local));
-			glUniformMatrix4fv(program->location(DefaultUniforms::MatModel),
-				1, false, reinterpret_cast<float*>(&mi.world_transform));
-			glUniformMatrix4fv(program->location(DefaultUniforms::InvModel),
-				1, false, reinterpret_cast<float*>(&local_to_world));
-
 			for (uint32_t i = 0; i < mat.num_samplers; i++) {
 				glActiveTexture(GL_TEXTURE0 + i);
 				glBindTexture(GL_TEXTURE_2D, mat.samplers[i].texture->gl_texture);
@@ -205,18 +165,36 @@ void Render(const Engine& engine, GameObject* scene, Camera* camera, Program* pr
 					program->uniform(u.uniform, u.scalar.f32);
 				}
 			}
+		}
 
-			glBindVertexArray(mesh.gl_vertex_array);
+		glBindVertexArray(mesh.gl_vertex_array);
+
+		// TODO: Use instancing. Changes required:
+		// 1. Stop wiping out RenderListPerView every frame
+		// 2. Keep track of a GL uniform buffer object in RenderableMesh
+		// 3. Upload the contents of RenderListPerView::mesh_instances to the buffer when needed
+		// 4. Create a vertex shader that can pull data from it based on instance ID and a uniform
+
+		for (uint32_t i = rmesh.first_instance; i < rmesh.first_instance + rmesh.instance_count; i++) {
+			const RenderableMeshInstanceData& rmid = viewlist.mesh_instances[i];
+
+			glUniformMatrix4fv(program->location(DefaultUniforms::LocalToWorld),
+				1, false, reinterpret_cast<const float*>(&rmid.local_to_world));
+			glUniformMatrix4fv(program->location(DefaultUniforms::LocalToClip),
+				1, false, reinterpret_cast<const float*>(&rmid.local_to_clip));
+			glUniformMatrix4fv(program->location(DefaultUniforms::LastLocalToClip),
+				1, false, reinterpret_cast<const float*>(&rmid.last_local_to_clip));
+
 			glDrawElements(mesh.ptype.gl_enum(), mesh.index_buffer.total_components(),
 				mesh.index_buffer.ctype.gl_enum(), nullptr);
 		}
+	}
 
-		for (uint32_t i = 0; i < Material::MaxSamplers; i++) {
-			glActiveTexture(GL_TEXTURE0 + i);
-			glBindTexture(GL_TEXTURE_2D, 0);
-			glBindSampler(i, 0);
-		}
+	for (uint32_t i = 0; i < Material::MaxSamplers; i++) {
+		glActiveTexture(GL_TEXTURE0 + i);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glBindSampler(i, 0);
+	}
 
-		glBindVertexArray(0);
-	});
+	glBindVertexArray(0);
 }

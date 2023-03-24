@@ -5,6 +5,44 @@
 #include "scene/light.hh"
 #include "assets/mesh.hh"
 
+static bool CollideAABBFrustum(vec3 aabb_center, vec3 aabb_half_extents, mat4 local_to_clip, float zn, float zf) {
+	// See https://fgiesen.wordpress.com/2010/10/17/view-frustum-culling/
+	// Using "method 3" for now, since we don't compute world-space frustum planes yet.
+	vec3 center = aabb_center, half = aabb_half_extents;
+	vec4 p[] = {
+		{ center[0] + half[0], center[1] + half[1], center[2] + half[2], 1 },
+		{ center[0] + half[0], center[1] + half[1], center[2] - half[2], 1 },
+		{ center[0] + half[0], center[1] - half[1], center[2] + half[2], 1 },
+		{ center[0] + half[0], center[1] - half[1], center[2] - half[2], 1 },
+		{ center[0] - half[0], center[1] + half[1], center[2] + half[2], 1 },
+		{ center[0] - half[0], center[1] + half[1], center[2] - half[2], 1 },
+		{ center[0] - half[0], center[1] - half[1], center[2] + half[2], 1 },
+		{ center[0] - half[0], center[1] - half[1], center[2] - half[2], 1 },
+	};
+	for (int i = 0; i < countof(p); i++) {
+		p[i] = local_to_clip * p[i];
+	}
+	// Plane equations: -w <= x <= w, -w <= y <= w, zn <= w <= zf
+	bool cullX = true; // true if x is not in [-w, w]
+	bool cullY = true; // true if y is not in [-w, w]
+	bool cullW = true; // true if w is not in [zn, zf]
+	for (int i = 0; i < countof(p); i++) {
+		if (-p[i][3] <= p[i][0] && p[i][0] <= p[i][3]) { cullX = false; }
+		if (-p[i][3] <= p[i][1] && p[i][1] <= p[i][3]) { cullY = false; }
+		if (zn <= p[i][3] && p[i][3] <= zf) { cullW = false; }
+	}
+	return !(cullX && cullY && cullW);
+}
+
+static bool MeshInstanceShouldBeRendered(const MeshInstance& mi, const Camera& camera, const mat4 local_to_clip) {
+	// Invalid AABB means it should always be rendered
+	if (mi.mesh->aabb_half_extents == vec3(0)) { return true; }
+	// Frustum-cull using AABB and MVP transform
+	if (CollideAABBFrustum(mi.mesh->aabb_center, mi.mesh->aabb_half_extents, local_to_clip,
+		camera.input.znear, camera.input.zfar)) { return true; }
+	return false;
+}
+
 void RenderListPerView::UpdateFromScene(const Engine& engine, GameObject* scene, Camera* camera) {
 	// TODO: Should reuse generated renderlist objects when possible; for now, just clear them
 	Clear();
@@ -22,14 +60,11 @@ void RenderListPerView::UpdateFromScene(const Engine& engine, GameObject* scene,
 			case MeshInstance::TypeTag.hash: {
 				MeshInstance& mi = static_cast<MeshInstance&>(obj);
 				if (!mi.mesh || mi.mesh->gl_vertex_array == 0) { return; }
-				RenderableMeshKey key = {
-					.gl_vertex_array = mi.mesh->gl_vertex_array,
-					.gl_primitive_type = mi.mesh->ptype.gl_enum(),
-				};
+				RenderableMeshKey key = { .mesh = mi.mesh, .material = mi.material };
 				RenderableMesh& rmesh = meshes[key];
-				if (rmesh.gl_vertex_array == 0) {
-					rmesh.gl_vertex_array = key.gl_vertex_array;
-					rmesh.gl_primitive_type = key.gl_primitive_type;
+				if (rmesh.mesh == nullptr) {
+					rmesh.mesh = key.mesh;
+					rmesh.material = key.material;
 					rmesh.first_instance = 0;
 					rmesh.instance_count = 0;
 				}
@@ -49,10 +84,7 @@ void RenderListPerView::UpdateFromScene(const Engine& engine, GameObject* scene,
 		if (obj.Type() == MeshInstance::TypeTag) {
 			MeshInstance& mi = static_cast<MeshInstance&>(obj);
 			if (!mi.mesh || mi.mesh->gl_vertex_array == 0) { return; }
-			RenderableMeshKey key = {
-				.gl_vertex_array = mi.mesh->gl_vertex_array,
-				.gl_primitive_type = mi.mesh->ptype.gl_enum(),
-			};
+			RenderableMeshKey key = { .mesh = mi.mesh, .material = mi.material };
 			RenderableMesh& rmesh = meshes[key];
 			if (rmesh.first_instance == 0) {
 				// Allocate a region inside mesh_instances for this mesh's instances
@@ -61,9 +93,15 @@ void RenderListPerView::UpdateFromScene(const Engine& engine, GameObject* scene,
 				// Reuse instance_count to keep track of next index inside allocated region
 				rmesh.instance_count = 0;
 			}
-			mesh_instances[rmesh.first_instance + (rmesh.instance_count++)] = RenderableMeshInstanceData{
-				.world_transform = obj.world_transform,
-			};
+			// Compute local-to-clip (MVP) transform for this instance
+			mat4 local_to_clip = camera->this_frame.vp * mi.world_transform;
+			if (MeshInstanceShouldBeRendered(mi, *camera, local_to_clip)) {
+				mesh_instances[rmesh.first_instance + (rmesh.instance_count++)] = RenderableMeshInstanceData{
+					.local_to_world = mi.world_transform,
+					.local_to_clip = local_to_clip,
+					.last_local_to_clip = camera->last_frame.vp * mi.world_transform,
+				};
+			}
 		}
 	});
 }

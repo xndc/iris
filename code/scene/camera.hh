@@ -19,7 +19,7 @@ struct Camera : GameObject {
 	struct Input {
 		// Near clipping plane
 		float znear;
-		// Far clipping plane, not relevant for INFINITE_PERSPECTIVE projections
+		// Far clipping plane, should be INFINITY for INFINITE_PERSPECTIVE projections
 		float zfar;
 		// Zoom factor for ORTHOGRAPHIC cameras
 		// FIXME: This is in clip-space units per world-space units, right?
@@ -71,6 +71,7 @@ struct Camera : GameObject {
 		Camera* camera = new Camera();
 		camera->projection = INFINITE_PERSPECTIVE_REVZ;
 		camera->input.znear = znear;
+		camera->input.zfar = INFINITY;
 		camera->input.hfov_deg = hfov_deg;
 		return camera;
 	}

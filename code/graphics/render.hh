@@ -45,4 +45,4 @@ void UpdateShadowRenderTargets(const DirectionalLight& light);
 Framebuffer* GetFramebuffer(std::initializer_list<RenderTarget> attachments);
 void BindFramebuffer(Framebuffer* framebuffer);
 
-void Render(const Engine& engine, GameObject* scene, Camera* camera, Program* program, Framebuffer* framebuffer);
+void Render(const Engine& engine, RenderList& rlist, Camera* camera, Program* program, Framebuffer* framebuffer);

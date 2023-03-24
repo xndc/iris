@@ -46,10 +46,9 @@ namespace DefaultUniforms {
 	static constexpr Item RTDepth = {"RTDepth"};
 
 	// Transformation matrices
-	static constexpr Item MatModelViewProjection = {"MatModelViewProjection"};
-	static constexpr Item InvModelViewProjection = {"InvModelViewProjection"};
-	static constexpr Item MatModel = {"MatModel"};
-	static constexpr Item InvModel = {"InvModel"};
+	static constexpr Item LocalToWorld = {"LocalToWorld"};
+	static constexpr Item LocalToClip = {"LocalToClip"};
+	static constexpr Item LastLocalToClip = {"LastLocalToClip"};
 
 	// Material sampler bindings
 	static constexpr Item TexAlbedo    = {"TexAlbedo"};
@@ -68,7 +67,7 @@ namespace DefaultUniforms {
 	static constexpr Item all[] = {
 		RTDiffuse, RTNormal, RTMaterial, RTVelocity, RTColorHDR, RTDepth,
 		FramebufferSize,
-		MatModelViewProjection, InvModelViewProjection, MatModel, InvModel,
+		LocalToWorld, LocalToClip, LastLocalToClip,
 		TexAlbedo, TexNormal, TexOcclusion, TexOccRghMet,
 		ConstAlbedo, ConstMetallic, ConstRoughness,
 		ShadowMap,

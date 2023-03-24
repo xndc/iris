@@ -256,7 +256,7 @@ static void loop(void) {
 	FragShader* fsh = GetFragShader("data/shaders/debug_albedo.frag");
 	Program* prog = GetProgram(vsh, fsh);
 	Framebuffer* final = nullptr;
-	Render(engine, scene, engine.cam_main, prog, final);
+	Render(engine, render_list, engine.cam_main, prog, final);
 
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
@@ -278,15 +278,15 @@ static void loop(void) {
 
 		LOG_F(INFO, "Render lists:");
 		for (RenderListPerView& v : render_list.views) {
-			LOG_F(INFO, "* Camera <%jx> pos=[%.02f %.02f %.02f]", (uintptr_t)(v.camera),
+			LOG_F(INFO, "* Camera <%jx> pos=[%.02f %.02f %.02f]", uintptr_t(v.camera),
 				v.camera->world_position.x, v.camera->world_position.y, v.camera->world_position.z);
 			for (auto& [k, m] : v.meshes) {
-				LOG_F(INFO, "  * Mesh gl=%u instances=[%u:%u] (%u)", m.gl_vertex_array, m.first_instance,
+				LOG_F(INFO, "  * Mesh <%jx> instances=[%u:%u] (%u)", uintptr_t(m.mesh), m.first_instance,
 					m.first_instance + m.instance_count - 1, m.instance_count);
 				for (uint32_t i = m.first_instance; i < m.first_instance + m.instance_count; i++) {
 					RenderableMeshInstanceData& rmid = v.mesh_instances[i];
 					vec3 position, scale, skew; quat rotation; vec4 perspective;
-					glm::decompose(rmid.world_transform, scale, rotation, position, skew, perspective);
+					glm::decompose(rmid.local_to_world, scale, rotation, position, skew, perspective);
 					LOG_F(INFO, "    * Instance %u pos=[%.02f %.02f %.02f]", i, position.x, position.y, position.z);
 				}
 			}

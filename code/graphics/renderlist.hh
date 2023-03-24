@@ -10,24 +10,32 @@
 struct Engine;
 struct GameObject;
 struct Camera;
+struct Mesh;
+struct Material;
 
 struct RenderableMeshKey {
-	GLuint gl_vertex_array;
-	GLenum gl_primitive_type;
+	Mesh* mesh;
+	Material* material;
 	constexpr bool operator==(const RenderableMeshKey& rhs) const {
-		return gl_vertex_array == rhs.gl_vertex_array && gl_primitive_type == rhs.gl_primitive_type;
+		return mesh == rhs.mesh && material == rhs.material;
 	}
 };
 
 struct RenderableMesh {
-	GLuint gl_vertex_array;
-	GLenum gl_primitive_type;
+	Mesh* mesh;
+	Material* material;
 	uint32_t first_instance;
 	uint32_t instance_count;
 };
 
 struct RenderableMeshInstanceData {
-	mat4 world_transform;
+	// Local-to-world (model) matrix. Needed for tangent/basis/normal computations.
+	mat4 local_to_world;
+	// Local-to-clip (MVP) transform. This is view-dependent, so we have one object per view.
+	// NOTE: It would be nice not to have to precompute this, but we do frustum culling on the CPU
+	// side at the moment. Revisit if we ever implement hierarchical Z-buffer occlusion.
+	mat4 local_to_clip;
+	mat4 last_local_to_clip;
 };
 
 struct RenderableDirectionalLight {
