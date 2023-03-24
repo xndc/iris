@@ -46,3 +46,12 @@ Framebuffer* GetFramebuffer(std::initializer_list<RenderTarget> attachments);
 void BindFramebuffer(Framebuffer* framebuffer);
 
 void Render(const Engine& engine, RenderList& rlist, Camera* camera, Program* program, Framebuffer* framebuffer);
+
+void* StartRenderPass(const char* name);
+void EndRenderPass(void* render_pass_handle);
+
+template <typename F> static void RenderPass(const char* name, F function) {
+	void* render_pass_handle = StartRenderPass(name);
+	function();
+	EndRenderPass(render_pass_handle);
+}

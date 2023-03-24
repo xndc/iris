@@ -240,9 +240,12 @@ static void loop(void) {
 	render_list.UpdateFromScene(engine, scene, engine.cam_main);
 
 	glViewport(0, 0, engine.display_w, engine.display_h);
-	glClearColor(0.3f, 0.4f, 0.55f, 1.0f);
-	glClearDepth(0.0f); // reverse Z
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	RenderPass("Backbuffer Clear", [&]() {
+		glClearColor(0.3f, 0.4f, 0.55f, 1.0f);
+		glClearDepth(0.0f); // reverse Z
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	});
 
 #if 0
 	glUseProgram(prog->gl_program);
@@ -252,15 +255,19 @@ static void loop(void) {
 		DefaultMeshes::QuadXZ.index_buffer.ctype.gl_enum(), nullptr);
 #endif
 
-	VertShader* vsh = GetVertShader("data/shaders/core_transform.vert");
-	FragShader* fsh = GetFragShader("data/shaders/debug_albedo.frag");
-	Program* prog = GetProgram(vsh, fsh);
-	Framebuffer* final = nullptr;
-	Render(engine, render_list, engine.cam_main, prog, final);
+	RenderPass("Duck", [&]() {
+		VertShader* vsh = GetVertShader("data/shaders/core_transform.vert");
+		FragShader* fsh = GetFragShader("data/shaders/debug_albedo.frag");
+		Program* prog = GetProgram(vsh, fsh);
+		Framebuffer* final = nullptr;
+		Render(engine, render_list, engine.cam_main, prog, final);
+	});
 
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+	RenderPass("Editor UI", [&]() {
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+	});
 
 	engine.this_frame.t_render = (SDL_GetPerformanceCounter() - engine.initial_t) * msec_per_tick;
 

@@ -165,6 +165,8 @@ void Render(const Engine& engine, RenderList& rlist, Camera* camera, Program* pr
 					program->uniform(u.uniform, u.scalar.f32);
 				}
 			}
+
+			last_material = &mat;
 		}
 
 		glBindVertexArray(mesh.gl_vertex_array);
@@ -197,4 +199,14 @@ void Render(const Engine& engine, RenderList& rlist, Camera* camera, Program* pr
 	}
 
 	glBindVertexArray(0);
+}
+
+void* StartRenderPass(const char* name) {
+	GLPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, name);
+	return nullptr;
+}
+
+void EndRenderPass(void* render_pass_handle) {
+	(void)(render_pass_handle); // unused
+	GLPopDebugGroup();
 }

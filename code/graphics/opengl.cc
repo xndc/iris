@@ -13,6 +13,8 @@ void GLAPIENTRY GLDebugMessageCallback (GLenum src, GLenum type, GLuint id, GLen
 		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: { LOG_F(INFO, "GL UB warning: %s", msg); break; }
 		case GL_DEBUG_TYPE_PORTABILITY: { LOG_F(INFO, "GL portability warning: %s", msg); break; }
 		case GL_DEBUG_TYPE_PERFORMANCE: { LOG_F(INFO, "GL performance warning: %s", msg); break; }
+		case GL_DEBUG_TYPE_PUSH_GROUP: break;
+		case GL_DEBUG_TYPE_POP_GROUP: break;
 		default: { LOG_F(INFO, "GL message: %s", msg); }
 	}
 }
@@ -48,6 +50,12 @@ void GLMakeContextCurrent(SDL_Window* window, SDL_GLContext context) {
 		if (glDebugMessageCallback) {
 			glDebugMessageCallback(GLDebugMessageCallback, nullptr);
 			glEnable(GL_DEBUG_OUTPUT);
+			// Try to disable GLPushDebugGroup/GLPopDebugGroup messages.
+			// FIXME: We target GL 4.0 so this doesn't work (on Windows/AMD anyway).
+			glDebugMessageControl(GL_DEBUG_SOURCE_APPLICATION, GL_DONT_CARE, GL_DEBUG_TYPE_PUSH_GROUP,
+				0, nullptr, GL_FALSE);
+			glDebugMessageControl(GL_DEBUG_SOURCE_APPLICATION, GL_DONT_CARE, GL_DEBUG_TYPE_POP_GROUP,
+				0, nullptr, GL_FALSE);
 			const char message[] = "OpenGL debug messages enabled";
 			glDebugMessageInsert(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_OTHER, 0,
 				GL_DEBUG_SEVERITY_NOTIFICATION, sizeof(message), message);
@@ -57,8 +65,18 @@ void GLMakeContextCurrent(SDL_Window* window, SDL_GLContext context) {
 
 void GLObjectLabel(GLenum identifier, GLuint name, const char* label) {
 	#if !PLATFORM_WEB
-		if (glObjectLabel) {
-			glObjectLabel(identifier, name, 0, label);
-		}
+		if (glObjectLabel) { glObjectLabel(identifier, name, -1, label); }
+	#endif
+}
+
+void GLPushDebugGroup(GLenum source, GLuint id, const char* message) {
+	#if !PLATFORM_WEB
+		if (glPushDebugGroup) { glPushDebugGroup(source, id, -1, message); }
+	#endif
+}
+
+void GLPopDebugGroup() {
+	#if !PLATFORM_WEB
+		if (glPopDebugGroup) { glPopDebugGroup(); }
 	#endif
 }
