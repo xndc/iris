@@ -3,11 +3,14 @@
 #include "graphics/opengl.hh"
 #include "graphics/defaults.hh"
 #include "graphics/formats.hh"
+#include "graphics/renderlist.hh"
 #include "assets/material.hh"
 #include "assets/model.hh"
 #include "assets/shader.hh"
 #include "scene/camera.hh"
+
 struct Engine;
+struct DirectionalLight;
 
 struct RenderTarget {
 	const ImageFormat format;
@@ -37,6 +40,7 @@ struct Framebuffer {
 };
 
 void UpdateRenderTargets(const Engine& engine);
+void UpdateShadowRenderTargets(const DirectionalLight& light);
 
 Framebuffer* GetFramebuffer(std::initializer_list<RenderTarget> attachments);
 void BindFramebuffer(Framebuffer* framebuffer);

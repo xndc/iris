@@ -1,5 +1,6 @@
 #include "graphics/render.hh"
 #include "engine/engine.hh"
+#include "scene/light.hh"
 #include <unordered_map>
 
 namespace DefaultRenderTargets {
@@ -57,10 +58,13 @@ void UpdateRenderTargets(const Engine& engine) {
 		RebuildRenderTarget(DefaultRenderTargets::Depth,      engine.display_w, engine.display_h);
 		ClearFramebufferCache();
 	}
+}
+
+void UpdateShadowRenderTargets(const DirectionalLight& light) {
 	static uint32_t last_shadowmap_size = 0;
-	if (engine.shadowmap_size != last_shadowmap_size) {
-		last_shadowmap_size = engine.shadowmap_size;
-		RebuildRenderTarget(DefaultRenderTargets::ShadowMap, engine.shadowmap_size, engine.shadowmap_size);
+	if (light.shadowmap_size != last_shadowmap_size) {
+		last_shadowmap_size = light.shadowmap_size;
+		RebuildRenderTarget(DefaultRenderTargets::ShadowMap, light.shadowmap_size, light.shadowmap_size);
 		ClearFramebufferCache();
 	}
 }

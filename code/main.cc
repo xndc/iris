@@ -13,6 +13,7 @@
 #include "engine/engine.hh"
 #include "graphics/opengl.hh"
 #include "scene/gameobject.hh"
+#include "scene/light.hh"
 #include "assets/asset_loader.hh"
 #include "assets/texture.hh"
 #include "assets/mesh.hh"
@@ -97,6 +98,10 @@ SDLMAIN_DECLSPEC int main(int argc, char* argv[]) {
 
 	Model* model = GetModelFromGLTF("data/models/Duck/Duck.gltf");
 	scene->AddCopy(model->root_object);
+
+	DirectionalLight* dl = scene->Add(new DirectionalLight());
+	dl->position = vec3(1, 1, 1);
+	dl->color = vec3(1, 1, 1);
 
 	#if defined(EMSCRIPTEN)
 		emscripten_set_main_loop(loop, 0, true);
@@ -229,16 +234,10 @@ static void loop(void) {
 	scene->RecursiveUpdateTransforms();
 	scene->RecursiveLateUpdate(engine);
 
-	if (engine.this_frame.n == 10) {
-		char spaces[] = "                                                  ";
-		uint32_t indent = 0;
-		scene->Recurse([&](GameObject& obj) {
-			LOG_F(INFO, "%s* %s", &spaces[sizeof(spaces) - indent - 1], obj.DebugName().cstr);
-			indent++;
-		}, [&](GameObject& obj) { indent--; });
-	}
-
 	engine.this_frame.t_update = (SDL_GetPerformanceCounter() - engine.initial_t) * msec_per_tick;
+
+	static RenderList render_list;
+	render_list.UpdateFromScene(engine, scene, engine.cam_main);
 
 	glViewport(0, 0, engine.display_w, engine.display_h);
 	glClearColor(0.3f, 0.4f, 0.55f, 1.0f);
@@ -266,4 +265,45 @@ static void loop(void) {
 	engine.this_frame.t_render = (SDL_GetPerformanceCounter() - engine.initial_t) * msec_per_tick;
 
 	SDL_GL_SwapWindow(window);
+
+#if 1 // FIXME: Debug code, strip out once scene graph can be visualised graphically
+	if (engine.this_frame.n == 10) {
+		LOG_F(INFO, "Scene graph:");
+		char spaces[] = "                                                  ";
+		uint32_t indent = 0;
+		scene->Recurse([&](GameObject& obj) {
+			LOG_F(INFO, "%s* %s", &spaces[sizeof(spaces) - indent - 1], obj.DebugName().cstr);
+			indent++;
+		}, [&](GameObject& obj) { indent--; });
+
+		LOG_F(INFO, "Render lists:");
+		for (RenderListPerView& v : render_list.views) {
+			LOG_F(INFO, "* Camera <%jx> pos=[%.02f %.02f %.02f]", (uintptr_t)(v.camera),
+				v.camera->world_position.x, v.camera->world_position.y, v.camera->world_position.z);
+			for (auto& [k, m] : v.meshes) {
+				LOG_F(INFO, "  * Mesh gl=%u instances=[%u:%u] (%u)", m.gl_vertex_array, m.first_instance,
+					m.first_instance + m.instance_count - 1, m.instance_count);
+				for (uint32_t i = m.first_instance; i < m.first_instance + m.instance_count; i++) {
+					RenderableMeshInstanceData& rmid = v.mesh_instances[i];
+					vec3 position, scale, skew; quat rotation; vec4 perspective;
+					glm::decompose(rmid.world_transform, scale, rotation, position, skew, perspective);
+					LOG_F(INFO, "    * Instance %u pos=[%.02f %.02f %.02f]", i, position.x, position.y, position.z);
+				}
+			}
+		}
+		for (RenderableDirectionalLight& r : render_list.directional_lights) {
+			LOG_F(INFO, "* DirectionalLight pos=[%.02f %.02f %.02f] color=[%.02f %.02f %.02f]",
+				r.position.x, r.position.y, r.position.z,
+				r.color.x, r.color.y, r.color.z);
+		}
+		for (RenderablePointLight& r : render_list.point_lights) {
+			LOG_F(INFO, "* PointLight pos=[%.02f %.02f %.02f] color=[%.02f %.02f %.02f]",
+				r.position.x, r.position.y, r.position.z,
+				r.color.x, r.color.y, r.color.z);
+		}
+		for (RenderableAmbientCube& r : render_list.ambient_cubes) {
+			LOG_F(INFO, "* AmbientCube pos=[%.02f %.02f %.02f]", r.position.x, r.position.y, r.position.z);
+		}
+	}
+#endif
 }

@@ -83,15 +83,6 @@ struct Engine {
 
 	Camera* cam_main = nullptr;
 
-#if 1 // FIXME: These should really be properties of DirectionalLight
-	Camera* cam_shadow = Camera::NewOrthographic(100.0f, -1000.0f, 500.0f);
-	uint32_t shadowmap_size = 4096;
-	float shadow_bias_min = 0.0002f;
-	float shadow_bias_max = 0.01f;
-	uint8_t shadow_pcf_taps_x = 2;
-	uint8_t shadow_pcf_taps_y = 2;
-#endif
-
 	VSync vsync = VSync::ADAPTIVE;
 	Tonemapper tonemapper = Tonemapper(Tonemapper::HABLE, 16.0f);
 
