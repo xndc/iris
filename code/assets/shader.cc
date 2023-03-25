@@ -85,7 +85,7 @@ static bool UpdateShaderDefines(const Engine& engine) {
 		});
 
 		define([&](){ return false; /* never updated */ }, [&]() {
-			if (glClipControl) {
+			if (glClipControl || glDepthRangedNV) {
 				// If ClipControl is supported and we use it to configure our clip space correctly,
 				// written depth range [0,1] will be read as [0,1] when sampling from RTDepth.
 				write("#define DEPTH_ZERO_TO_ONE\n");
