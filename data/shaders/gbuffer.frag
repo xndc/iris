@@ -31,7 +31,14 @@ void main() {
 	OutAlbedo = albedo;
 
 	vec3 tex_normal = texture(TexNormal, VTexcoord0).rgb;
-	OutNormal = normalize(TangentBasisNormal * normalize(tex_normal * 2.0 - 1.0));
+	// If the model doesn't specify a normal map, we'll bind a 1x1 white texture to TexNormal. We
+	// can and should just copy over the normal that core_transform.vert generates in this case.
+	if (tex_normal == vec3(1)) {
+		OutNormal = TangentBasisNormal[2];
+	} else {
+		// FIXME: Is this broken on WebGL2? Retest once we have models with actual normal maps.
+		OutNormal = normalize(TangentBasisNormal * normalize(tex_normal * 2.0 - 1.0));
+	}
 
 	float roughness = ConstRoughness * texture(TexOccRghMet, VTexcoord0).g;
 	float metalness = ConstMetallic  * texture(TexOccRghMet, VTexcoord0).b;
