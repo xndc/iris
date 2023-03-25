@@ -8,6 +8,7 @@ struct ImageFormat {
 		RGBA8,
 		RGB8,
 		RG8,
+		RGB10A2,
 		RG11B10,
 		RGB16,
 		RG16,
@@ -23,6 +24,7 @@ struct ImageFormat {
 			case RGBA8: return GL_RGBA8;
 			case RGB8: return GL_RGB8;
 			case RG8: return GL_RG8;
+			case RGB10A2: return GL_RGB10_A2;
 			case RG11B10: return GL_R11F_G11F_B10F;
 			case RGB16: return GL_RGB16F;
 			case RG16: return GL_RG16F;
@@ -47,6 +49,7 @@ struct ImageFormat {
 			case RGBA8: return GL_RGBA;
 			case RGB8: return GL_RGB;
 			case RG8: return GL_RG;
+			case RGB10A2: return GL_RGBA;
 			case RG11B10: return GL_RGB;
 			case RGB16: return GL_RGB;
 			case RG16: return GL_RG;
@@ -62,6 +65,7 @@ struct ImageFormat {
 			case RGBA8: return GL_UNSIGNED_BYTE;
 			case RGB8: return GL_UNSIGNED_BYTE;
 			case RG8: return GL_UNSIGNED_BYTE;
+			case RGB10A2: return GL_UNSIGNED_INT_2_10_10_10_REV;
 			case RG11B10: return GL_UNSIGNED_INT_10F_11F_11F_REV;
 			case RGB16: return GL_HALF_FLOAT;
 			case RG16: return GL_HALF_FLOAT;
@@ -86,6 +90,7 @@ struct ImageFormat {
 			case RGBA8: return GL_COLOR_ATTACHMENT0;
 			case RGB8: return GL_COLOR_ATTACHMENT0;
 			case RG8: return GL_COLOR_ATTACHMENT0;
+			case RGB10A2: return GL_COLOR_ATTACHMENT0;
 			case RG11B10: return GL_COLOR_ATTACHMENT0;
 			case RGB16: return GL_COLOR_ATTACHMENT0;
 			case RG16: return GL_COLOR_ATTACHMENT0;

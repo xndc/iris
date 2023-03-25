@@ -21,7 +21,7 @@ struct RenderTarget {
 };
 
 namespace DefaultRenderTargets {
-	extern RenderTarget Diffuse;
+	extern RenderTarget Albedo;
 	extern RenderTarget Normal;
 	extern RenderTarget Material;
 	extern RenderTarget Velocity;
@@ -42,10 +42,14 @@ struct Framebuffer {
 void UpdateRenderTargets(const Engine& engine);
 void UpdateShadowRenderTargets(const DirectionalLight& light);
 
-Framebuffer* GetFramebuffer(std::initializer_list<RenderTarget> attachments);
+Framebuffer* GetFramebuffer(std::initializer_list<RenderTarget*> attachments);
 void BindFramebuffer(Framebuffer* framebuffer);
 
-void Render(const Engine& engine, RenderList& rlist, Camera* camera, Program* program, Framebuffer* framebuffer);
+void Render(const Engine& engine, RenderList& rlist, Camera* camera, Program* program,
+	Framebuffer* input, Framebuffer* output, std::initializer_list<UniformValue> uniforms);
+
+void RenderEffect(const Engine& engine, FragShader* fsh, Framebuffer* input, Framebuffer* output,
+	std::initializer_list<UniformValue> uniforms);
 
 void* StartRenderPass(const char* name);
 void EndRenderPass(void* render_pass_handle);

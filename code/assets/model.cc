@@ -230,93 +230,110 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 			m.face_culling_mode == GL_FRONT_AND_BACK ? "both" : "none");
 
 		// Base material textures:
+		SamplerBinding& smp_normal = m.samplers[m.num_samplers++];
+		smp_normal.uniform = DefaultUniforms::TexNormal;
 		JSON_Object* jnormaltex = json_object_get_object(jmat, "normalTexture");
 		if (jnormaltex) {
 			int itex = (int) json_object_get_number(jnormaltex, "index");
 			JSON_Object* jtex = json_array_get_object(jtextures, itex);
 			if (jtex && json_object_has_value(jtex, "source") && json_object_has_value(jtex, "sampler")) {
-				SamplerBinding& normal = m.samplers[m.num_samplers++];
-				normal.uniform = DefaultUniforms::TexNormal;
-				normal.texture = textures[uint32_t(json_object_get_number(jtex, "source"))];
-				normal.sampler = samplers[uint32_t(json_object_get_number(jtex, "sampler"))];
-				LOG_F(INFO, "-> material=%u -> %s gltex=%u", imat, normal.uniform.name,
-					normal.texture->gl_texture);
+				smp_normal.texture = textures[uint32_t(json_object_get_number(jtex, "source"))];
+				smp_normal.sampler = samplers[uint32_t(json_object_get_number(jtex, "sampler"))];
+				LOG_F(INFO, "-> material=%u -> %s gltex=%u", imat, smp_normal.uniform.name,
+					smp_normal.texture->gl_texture);
 			}
+		} else {
+			smp_normal.texture = &DefaultTextures::White_1x1;
+			smp_normal.sampler = &DefaultSamplers::NearestRepeat;
 		}
+
+		SamplerBinding& smp_occlusion = m.samplers[m.num_samplers++];
+		smp_occlusion.uniform = DefaultUniforms::TexOcclusion;
 		JSON_Object* jocctex = json_object_get_object(jmat, "occlusionTexture");
 		if (jocctex) {
 			int itex = (int) json_object_get_number(jocctex, "index");
 			JSON_Object* jtex = json_array_get_object(jtextures, itex);
 			if (jtex && json_object_has_value(jtex, "source") && json_object_has_value(jtex, "sampler")) {
-				SamplerBinding& occlusion = m.samplers[m.num_samplers++];
-				occlusion.uniform = DefaultUniforms::TexOcclusion;
-				occlusion.texture = textures[uint32_t(json_object_get_number(jtex, "source"))];
-				occlusion.sampler = samplers[uint32_t(json_object_get_number(jtex, "sampler"))];
-				LOG_F(INFO, "-> material=%u -> %s gltex=%u", imat, occlusion.uniform.name,
-					occlusion.texture->gl_texture);
+				smp_occlusion.texture = textures[uint32_t(json_object_get_number(jtex, "source"))];
+				smp_occlusion.sampler = samplers[uint32_t(json_object_get_number(jtex, "sampler"))];
+				LOG_F(INFO, "-> material=%u -> %s gltex=%u", imat, smp_occlusion.uniform.name,
+					smp_occlusion.texture->gl_texture);
 			}
+		} else {
+			smp_occlusion.texture = &DefaultTextures::Black_1x1;
+			smp_occlusion.sampler = &DefaultSamplers::NearestRepeat;
 		}
 
 		// PBR metallic-roughness material properties:
 		JSON_Object* jmr = json_object_get_object(jmat, "pbrMetallicRoughness");
 		if (jmr) {
+			UniformValue& const_albedo = m.uniforms[m.num_uniforms++];
 			JSON_Array* jbaseColorFactor = json_object_get_array(jmr, "baseColorFactor");
 			if (jbaseColorFactor) {
-				UniformValue& const_albedo = m.uniforms[m.num_uniforms++];
-				const_albedo.uniform = DefaultUniforms::ConstAlbedo;
-				const_albedo.etype = ElementType::VEC4;
-				const_albedo.ctype = ComponentType::F32;
-				const_albedo.vec4.f32.r = float(json_array_get_number(jbaseColorFactor, 0));
-				const_albedo.vec4.f32.g = float(json_array_get_number(jbaseColorFactor, 1));
-				const_albedo.vec4.f32.b = float(json_array_get_number(jbaseColorFactor, 2));
-				const_albedo.vec4.f32.a = float(json_array_get_number(jbaseColorFactor, 3));
+				const_albedo = UniformValue(DefaultUniforms::ConstAlbedo, vec4(
+					float(json_array_get_number(jbaseColorFactor, 0)),
+					float(json_array_get_number(jbaseColorFactor, 1)),
+					float(json_array_get_number(jbaseColorFactor, 2)),
+					float(json_array_get_number(jbaseColorFactor, 3))));
 				LOG_F(INFO, "-> material=%u -> %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_albedo.uniform.name,
 					const_albedo.vec4.f32.r, const_albedo.vec4.f32.g,
 					const_albedo.vec4.f32.b, const_albedo.vec4.f32.a);
+			} else {
+				const_albedo = UniformValue(DefaultUniforms::ConstAlbedo, vec4(1.0f));
 			}
+
+			UniformValue& const_metallic = m.uniforms[m.num_uniforms++];
 			if (json_object_has_value(jmr, "metallicFactor")) {
-				UniformValue& const_metallic = m.uniforms[m.num_uniforms++];
-				const_metallic.uniform = DefaultUniforms::ConstMetallic;
-				const_metallic.etype = ElementType::SCALAR;
-				const_metallic.ctype = ComponentType::F32;
-				const_metallic.scalar.f32 = float(json_object_get_number(jmr, "metallicFactor"));
+				const_metallic = UniformValue(DefaultUniforms::ConstMetallic,
+					float(json_object_get_number(jmr, "metallicFactor")));
 				LOG_F(INFO, "-> material=%u -> %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_metallic.uniform.name,
 					const_metallic.vec4.f32.r, const_metallic.vec4.f32.g,
 					const_metallic.vec4.f32.b, const_metallic.vec4.f32.a);
+			} else {
+				const_metallic = UniformValue(DefaultUniforms::ConstMetallic, 1.0f);
 			}
+
+			UniformValue& const_roughness = m.uniforms[m.num_uniforms++];
 			if (json_object_has_value(jmr, "roughnessFactor")) {
-				UniformValue& const_roughness = m.uniforms[m.num_uniforms++];
-				const_roughness.uniform = DefaultUniforms::ConstRoughness;
-				const_roughness.etype = ElementType::SCALAR;
-				const_roughness.ctype = ComponentType::F32;
-				const_roughness.scalar.f32 = float(json_object_get_number(jmr, "roughnessFactor"));
+				const_roughness = UniformValue(DefaultUniforms::ConstRoughness,
+					float(json_object_get_number(jmr, "roughnessFactor")));
 				LOG_F(INFO, "-> material=%u -> %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_roughness.uniform.name,
 					const_roughness.vec4.f32.r, const_roughness.vec4.f32.g,
 					const_roughness.vec4.f32.b, const_roughness.vec4.f32.a);
 			}
+
+			SamplerBinding& smp_albedo = m.samplers[m.num_samplers++];
+			smp_albedo.uniform = DefaultUniforms::TexAlbedo;
 			JSON_Object* jbaseColorTexture = json_object_get_object(jmr, "baseColorTexture");
 			if (jbaseColorTexture) {
 				int itex = (int) json_object_get_number(jbaseColorTexture, "index");
 				JSON_Object* jtex = json_array_get_object(jtextures, itex);
 				if (jtex && json_object_has_value(jtex, "source") && json_object_has_value(jtex, "sampler")) {
-					SamplerBinding& albedo = m.samplers[m.num_samplers++];
-					albedo.uniform = DefaultUniforms::TexAlbedo;
-					albedo.texture = textures[uint32_t(json_object_get_number(jtex, "source"))];
-					albedo.sampler = samplers[uint32_t(json_object_get_number(jtex, "sampler"))];
-					LOG_F(INFO, "-> material=%u -> %s gltex=%u", imat, albedo.uniform.name, albedo.texture->gl_texture);
+					smp_albedo.texture = textures[uint32_t(json_object_get_number(jtex, "source"))];
+					smp_albedo.sampler = samplers[uint32_t(json_object_get_number(jtex, "sampler"))];
+					LOG_F(INFO, "-> material=%u -> %s gltex=%u", imat, smp_albedo.uniform.name,
+						smp_albedo.texture->gl_texture);
 				}
+			} else {
+				smp_albedo.texture = &DefaultTextures::White_1x1;
+				smp_albedo.sampler = &DefaultSamplers::NearestRepeat;
 			}
+
+			SamplerBinding& smp_occ_rgh_met = m.samplers[m.num_samplers++];
+			smp_occ_rgh_met.uniform = DefaultUniforms::TexOccRghMet;
 			JSON_Object* jmetallicRoughnessTexture = json_object_get_object(jmr, "metallicRoughnessTexture");
 			if (jmetallicRoughnessTexture) {
 				int itex = (int) json_object_get_number(jmetallicRoughnessTexture, "index");
 				JSON_Object* jtex = json_array_get_object(jtextures, itex);
 				if (jtex && json_object_has_value(jtex, "source") && json_object_has_value(jtex, "sampler")) {
-					SamplerBinding& rm = m.samplers[m.num_samplers++];
-					rm.uniform = DefaultUniforms::TexOccRghMet;
-					rm.texture = textures[uint32_t(json_object_get_number(jtex, "source"))];
-					rm.sampler = samplers[uint32_t(json_object_get_number(jtex, "sampler"))];
-					LOG_F(INFO, "-> material=%u -> %s gltex=%u", imat, rm.uniform.name, rm.texture->gl_texture);
+					smp_occ_rgh_met.texture = textures[uint32_t(json_object_get_number(jtex, "source"))];
+					smp_occ_rgh_met.sampler = samplers[uint32_t(json_object_get_number(jtex, "sampler"))];
+					LOG_F(INFO, "-> material=%u -> %s gltex=%u", imat, smp_occ_rgh_met.uniform.name,
+						smp_occ_rgh_met.texture->gl_texture);
 				}
+			} else {
+				smp_occ_rgh_met.texture = &DefaultTextures::White_1x1;
+				smp_occ_rgh_met.sampler = &DefaultSamplers::NearestRepeat;
 			}
 		}
 	}

@@ -91,6 +91,25 @@ struct UniformValue {
 	DefaultUniforms::Item uniform = DefaultUniforms::all[0];
 	ElementType etype;
 	ComponentType ctype;
+
+	UniformValue() = default;
+
+	#define CONSTRUCTOR(etype_name, ctype_name, short_etype, short_ctype, type) \
+		UniformValue(DefaultUniforms::Item uniform, type short_etype##_##short_ctype): \
+			uniform{uniform}, etype{etype_name}, ctype{ctype_name} \
+			{ short_etype.short_ctype = short_etype##_##short_ctype; }
+
+	CONSTRUCTOR(ElementType::SCALAR, ComponentType::F32, scalar, f32, float)
+	CONSTRUCTOR(ElementType::SCALAR, ComponentType::I32, scalar, i32, int32_t)
+	CONSTRUCTOR(ElementType::VEC2,   ComponentType::F32, vec2,   f32, glm::vec2)
+	CONSTRUCTOR(ElementType::VEC3,   ComponentType::F32, vec3,   f32, glm::vec3)
+	CONSTRUCTOR(ElementType::VEC4,   ComponentType::F32, vec4,   f32, glm::vec4)
+	CONSTRUCTOR(ElementType::VEC2,   ComponentType::I32, vec2,   i32, glm::ivec2)
+	CONSTRUCTOR(ElementType::VEC3,   ComponentType::I32, vec3,   i32, glm::ivec3)
+	CONSTRUCTOR(ElementType::VEC4,   ComponentType::I32, vec4,   i32, glm::ivec4)
+	CONSTRUCTOR(ElementType::MAT2X2, ComponentType::F32, mat2x2, f32, glm::mat2)
+	CONSTRUCTOR(ElementType::MAT3X3, ComponentType::F32, mat3x3, f32, glm::mat3)
+	CONSTRUCTOR(ElementType::MAT4X4, ComponentType::F32, mat4x4, f32, glm::mat4)
 };
 
 struct SamplerBinding {

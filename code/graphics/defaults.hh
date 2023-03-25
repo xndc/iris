@@ -37,7 +37,7 @@ namespace DefaultUniforms {
 	static constexpr Item FramebufferSize = {"FramebufferSize"};
 
 	// Render targets from previous passes
-	static constexpr Item RTDiffuse = {"RTDiffuse"};
+	static constexpr Item RTAlbedo = {"RTAlbedo"};
 	static constexpr Item RTNormal = {"RTNormal"};
 	static constexpr Item RTMaterial = {"RTMaterial"};
 	static constexpr Item RTVelocity = {"RTVelocity"};
@@ -64,12 +64,17 @@ namespace DefaultUniforms {
 	// Shadow sampler
 	static constexpr Item ShadowMap = {"ShadowMap"};
 
+	// Lighting parameters
+	static constexpr Item LightPosition = {"LightPosition"};
+	static constexpr Item LightColor = {"LightColor"};
+
 	static constexpr Item all[] = {
-		RTDiffuse, RTNormal, RTMaterial, RTVelocity, RTColorHDR, RTDepth,
+		RTAlbedo, RTNormal, RTMaterial, RTVelocity, RTColorHDR, RTDepth,
 		FramebufferSize,
 		LocalToWorld, LocalToClip, LastLocalToClip,
 		TexAlbedo, TexNormal, TexOcclusion, TexOccRghMet,
 		ConstAlbedo, ConstMetallic, ConstRoughness,
 		ShadowMap,
+		LightPosition, LightColor,
 	};
 }

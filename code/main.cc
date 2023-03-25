@@ -241,26 +241,36 @@ static void loop(void) {
 
 	glViewport(0, 0, engine.display_w, engine.display_h);
 
-	RenderPass("Backbuffer Clear", [&]() {
+	Framebuffer* gbuffer = GetFramebuffer({
+		&DefaultRenderTargets::Albedo,
+		&DefaultRenderTargets::Normal,
+		&DefaultRenderTargets::Material,
+		&DefaultRenderTargets::Velocity,
+		&DefaultRenderTargets::Depth,
+	});
+
+	RenderPass("GBuffer Clear", [&]() {
+		BindFramebuffer(gbuffer);
 		glClearColor(0.3f, 0.4f, 0.55f, 1.0f);
 		glClearDepth(0.0f); // reverse Z
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	});
 
-#if 0
-	glUseProgram(prog->gl_program);
-	prog->uniform(DefaultUniforms::FramebufferSize, vec2(engine.display_w, engine.display_h));
-	glBindVertexArray(DefaultMeshes::QuadXZ.gl_vertex_array);
-	glDrawElements(DefaultMeshes::QuadXZ.ptype.gl_enum(), DefaultMeshes::QuadXZ.index_buffer.total_components(),
-		DefaultMeshes::QuadXZ.index_buffer.ctype.gl_enum(), nullptr);
-#endif
-
-	RenderPass("Duck", [&]() {
+	RenderPass("GBuffer", [&]() {
 		VertShader* vsh = GetVertShader("data/shaders/core_transform.vert");
-		FragShader* fsh = GetFragShader("data/shaders/debug_albedo.frag");
-		Program* prog = GetProgram(vsh, fsh);
-		Framebuffer* final = nullptr;
-		Render(engine, render_list, engine.cam_main, prog, final);
+		FragShader* fsh = GetFragShader("data/shaders/gbuffer.frag");
+		Program* program = GetProgram(vsh, fsh);
+		Render(engine, render_list, engine.cam_main, program, nullptr, gbuffer, {});
+	});
+
+	RenderPass("Directional Light Accumulation", [&]() {
+		for (RenderableDirectionalLight& light : render_list.directional_lights) {
+			FragShader* fsh = GetFragShader("data/shaders/light_directional.frag");
+			RenderEffect(engine, fsh, gbuffer, nullptr, {
+				UniformValue(DefaultUniforms::LightPosition, light.position),
+				UniformValue(DefaultUniforms::LightColor, light.color),
+			});
+		}
 	});
 
 	RenderPass("Editor UI", [&]() {
