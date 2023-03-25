@@ -136,7 +136,7 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 	}
 
 	float ticks_per_msec = float(SDL_GetPerformanceFrequency()) * 0.001f;
-	uint64_t time_get_start = SDL_GetPerformanceCounter();
+	uint64_t timestamp = SDL_GetPerformanceCounter();
 
 	if (texture.gl_texture != 0 && needs_reupload) {
 		glDeleteTextures(1, &texture.gl_texture);
@@ -162,8 +162,15 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 	texture.channels = static_cast<uint32_t>(c);
 
 	uint64_t time_disk_load_end = SDL_GetPerformanceCounter();
+	float time_disk_load = float(time_disk_load_end - timestamp) / ticks_per_msec;
+	timestamp = time_disk_load_end;
 
-	texture.num_levels = generate_mips ? MipchainLevelCount(w, h) : 1;
+	// Software mipgen is significantly slower than glGenerateMipmap in my testing so far, but I'm
+	// not yet sure how general this rule is.
+	static constexpr bool SOFTWARE_MIPGEN = false;
+
+	float time_mipgen = 0.0f;
+	texture.num_levels = (SOFTWARE_MIPGEN && generate_mips) ? MipchainLevelCount(w, h) : 1;
 	uint32_t texture_size = 0;
 	uint32_t mip_w = texture.width, mip_h = texture.height;
 	for (uint32_t i = 0; i < texture.num_levels; i++) {
@@ -178,7 +185,7 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 	texture.levels[0].staging_buffer = mipchain;
 	memcpy(mipchain, image, w * h * c);
 
-	if (generate_mips) {
+	if (SOFTWARE_MIPGEN && generate_mips) {
 		uint32_t mip_w = texture.width, mip_h = texture.height;
 		uint32_t mip_offset = mip_w * mip_h * c;
 		for (uint32_t i = 1; i < texture.num_levels; i++) {
@@ -199,17 +206,28 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 				LOG_F(ERROR, "Downscale failed for texture %s level %u (%ux%u)", source_path, i, mip_w, mip_h);
 			}
 		}
+		uint64_t time_mipgen_end = SDL_GetPerformanceCounter();
+		time_mipgen = float(time_mipgen_end - timestamp) / ticks_per_msec;
+		timestamp = time_mipgen_end;
 	}
-
-	uint64_t time_mipgen_end = SDL_GetPerformanceCounter();
 
 	UploadStagedLevels(texture);
 
 	uint64_t time_upload_end = SDL_GetPerformanceCounter();
+	float time_upload = float(time_upload_end - timestamp) / ticks_per_msec;
+	timestamp = time_upload_end;
+
+	if (!SOFTWARE_MIPGEN && generate_mips) {
+		glBindTexture(GL_TEXTURE_2D, texture.gl_texture);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		uint64_t time_mipgen_end = SDL_GetPerformanceCounter();
+		time_mipgen = float(time_mipgen_end - timestamp) / ticks_per_msec;
+		timestamp = time_mipgen_end;
+	}
+
 	LOG_F(INFO, "Texture %s: load %.03fms mipgen %.03f ms upload %.03fms gltex=%u", source_path,
-		float(time_disk_load_end - time_get_start) / ticks_per_msec,
-		float(time_mipgen_end - time_disk_load_end) / ticks_per_msec,
-		float(time_upload_end - time_mipgen_end) / ticks_per_msec, texture.gl_texture);
+		time_disk_load, time_mipgen, time_upload, texture.gl_texture);
 
 	stbi_image_free(image);
 	free(mipchain);
