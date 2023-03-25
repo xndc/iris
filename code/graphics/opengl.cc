@@ -51,10 +51,9 @@ void GLMakeContextCurrent(SDL_Window* window, SDL_GLContext context) {
 			glDebugMessageCallback(GLDebugMessageCallback, nullptr);
 			glEnable(GL_DEBUG_OUTPUT);
 			// Try to disable GLPushDebugGroup/GLPopDebugGroup messages.
-			// FIXME: We target GL 4.0 so this doesn't work (on Windows/AMD anyway).
-			glDebugMessageControl(GL_DEBUG_SOURCE_APPLICATION, GL_DONT_CARE, GL_DEBUG_TYPE_PUSH_GROUP,
+			glDebugMessageControl(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_PUSH_GROUP, GL_DONT_CARE,
 				0, nullptr, GL_FALSE);
-			glDebugMessageControl(GL_DEBUG_SOURCE_APPLICATION, GL_DONT_CARE, GL_DEBUG_TYPE_POP_GROUP,
+			glDebugMessageControl(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_POP_GROUP, GL_DONT_CARE,
 				0, nullptr, GL_FALSE);
 			const char message[] = "OpenGL debug messages enabled";
 			glDebugMessageInsert(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_OTHER, 0,
