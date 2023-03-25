@@ -65,7 +65,7 @@ void RenderListPerView::UpdateFromScene(const Engine& engine, GameObject* scene,
 				if (rmesh.mesh == nullptr) {
 					rmesh.mesh = key.mesh;
 					rmesh.material = key.material;
-					rmesh.first_instance = 0;
+					rmesh.first_instance = UINT32_MAX;
 					rmesh.instance_count = 0;
 				}
 				rmesh.instance_count++;
@@ -86,7 +86,7 @@ void RenderListPerView::UpdateFromScene(const Engine& engine, GameObject* scene,
 			if (!mi.mesh || mi.mesh->gl_vertex_array == 0) { return; }
 			RenderableMeshKey key = { .mesh = mi.mesh, .material = mi.material };
 			RenderableMesh& rmesh = meshes[key];
-			if (rmesh.first_instance == 0) {
+			if (rmesh.first_instance == UINT32_MAX) {
 				// Allocate a region inside mesh_instances for this mesh's instances
 				rmesh.first_instance = next_mesh_instance_slot;
 				next_mesh_instance_slot += rmesh.instance_count;
