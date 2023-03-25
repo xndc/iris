@@ -41,8 +41,8 @@ bool Mesh::compute_aabb() {
 		for (size_t i = 0; i < position.elements; i++) {
 			uint8_t* p = &position.buffer->cpu_buffer[position.offset + 3 * i * sizeof(float)];
 			vec3* vp = reinterpret_cast<vec3*>(p); // NOTE: needs -fno-strict-aliasing
-			aabb_min = glm::min(aabb_min, *vp);
-			aabb_max = glm::max(aabb_min, *vp);
+			aabb_min = vec3(Min(aabb_min.x, vp->x), Min(aabb_min.y, vp->y), Min(aabb_min.z, vp->z));
+			aabb_max = vec3(Max(aabb_max.x, vp->x), Max(aabb_max.y, vp->y), Max(aabb_max.z, vp->z));
 		}
 	} else {
 		LOG_F(WARNING, "Can't compute mesh AABB for %s/%s", position.etype.gltf_type(), position.ctype.name());
