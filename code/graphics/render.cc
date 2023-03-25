@@ -132,7 +132,7 @@ void Render(const Engine& engine, RenderList& rlist, Camera* camera, Program* pr
 	BindFramebuffer(output);
 	glUseProgram(program->gl_program);
 
-	uint32_t next_texture_unit = SetCoreUniforms(engine, program, input);
+	uint32_t first_texture_unit = SetCoreUniforms(engine, program, input);
 	for (UniformValue u : uniforms) { program->set(u); }
 
 	program->set({DefaultUniforms::CameraPosition, camera->world_position});
@@ -151,6 +151,8 @@ void Render(const Engine& engine, RenderList& rlist, Camera* camera, Program* pr
 		Material& mat = *rmesh.material;
 
 		if (&mat != last_material) {
+			uint32_t next_texture_unit = first_texture_unit;
+
 			if (mat.face_culling_mode != GL_NONE) {
 				glEnable(GL_CULL_FACE);
 				glCullFace(mat.face_culling_mode);
@@ -178,9 +180,9 @@ void Render(const Engine& engine, RenderList& rlist, Camera* camera, Program* pr
 
 			for (uint32_t i = 0; i < mat.num_samplers; i++) {
 				glActiveTexture(GL_TEXTURE0 + next_texture_unit);
-				glBindTexture(GL_TEXTURE_2D, mat.samplers[next_texture_unit].texture->gl_texture);
-				glBindSampler(next_texture_unit, mat.samplers[next_texture_unit].sampler->gl_sampler);
-				program->set({mat.samplers[next_texture_unit].uniform, int32_t(next_texture_unit)});
+				glBindTexture(GL_TEXTURE_2D, mat.samplers[i].texture->gl_texture);
+				glBindSampler(next_texture_unit, mat.samplers[i].sampler->gl_sampler);
+				program->set({mat.samplers[i].uniform, int32_t(next_texture_unit)});
 				next_texture_unit++;
 			}
 
