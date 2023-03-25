@@ -312,7 +312,12 @@ bool Program::set(const UniformValue& u) {
 	constexpr ComponentType::Enum U32 = ComponentType::U32;
 	constexpr ComponentType::Enum I32 = ComponentType::I32;
 	constexpr ComponentType::Enum F32 = ComponentType::F32;
+
 	GLint loc = location(u.uniform);
+	if (loc == -1) {
+		return false;
+	}
+
 	switch (u.etype.v) {
 		case ElementType::SCALAR: switch (u.ctype.v) {
 			case U8:  glUniform1ui(loc, u.scalar.u8);  break;
@@ -386,4 +391,5 @@ bool Program::set(const UniformValue& u) {
 		} break;
 		case ElementType::Count: Unreachable();
 	}
+	return true;
 }
