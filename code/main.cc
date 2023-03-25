@@ -94,14 +94,15 @@ SDLMAIN_DECLSPEC int main(int argc, char* argv[]) {
 	scene = new GameObject();
 
 	// znear=0.5f results in reasonably high depth precision even without clip-control support
-	engine.cam_main = scene->Add(Camera::NewInfPerspective(0.5f, 90.0f));
+	engine.cam_main = scene->Add(Camera::NewInfPerspective(0.5f, 100.0f));
 
-	Model* model = GetModelFromGLTF("data/models/Duck/Duck.gltf");
-	scene->AddCopy(model->root_object);
+	Model* sponza = GetModelFromGLTF("data/models/Sponza/Sponza.gltf");
+	GameObject* sponza_obj = scene->AddCopy(sponza->root_object);
+	sponza_obj->scale = vec3(100.0f);
 
 	DirectionalLight* dl = scene->Add(new DirectionalLight());
 	dl->position = vec3(1, 1, 1);
-	dl->color = vec3(1, 1, 1);
+	dl->color = vec3(10, 10, 10);
 
 	#if defined(EMSCRIPTEN)
 		emscripten_set_main_loop(loop, 0, true);
@@ -232,9 +233,9 @@ static void loop(void) {
 	ImGui::Render(); // doesn't emit drawcalls, so it belongs in the update section
 
 	static float f = 0.0f;
-	const float dist = 300.0f, height = 300.0f;
-	vec3 pivot = vec3(0.0f, 75.0f, 0.0f);
-	f += 0.01f;
+	const float dist = 100.0f, height = 100.0f;
+	vec3 pivot = vec3(0.0f, 100.0f, 0.0f);
+	f += 0.005f;
 	engine.cam_main->position = vec3(dist * sinf(f), height + (0.1f * height * sinf(f)), dist * cosf(f));
 	engine.cam_main->rotation = glm::quat_cast(glm::lookAt(engine.cam_main->position, pivot, vec3(0, 1, 0)));
 

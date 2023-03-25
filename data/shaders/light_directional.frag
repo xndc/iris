@@ -93,7 +93,6 @@ float UE_Disney_Schlick_Smith_SpecG(float NdotV, float NdotL, float roughness) {
 // * N is the surface normal of the fragment we're evaluating this function for (shading location)
 // * V is the normalised vector from the fragment to the camera
 // * L is the normalised vector from the fragment to the light
-// * Lcolor is the light's colour
 vec3 UE_CookTorrance_BRDF(vec3 N, vec3 V, vec3 L, vec3 light_color, vec3 albedo, float metalness, float roughness) {
 	vec3 H = normalize(V + L);
 	float NdotL = max(dot(N, L), 0.0);
