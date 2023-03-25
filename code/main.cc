@@ -118,6 +118,14 @@ static void loop(void) {
 	engine.last_frame = engine.this_frame;
 	engine.this_frame = FrameState(engine.last_frame, frame_start_t);
 
+	// Poll and swap times are dependent on the platform and may take abnormally long because of
+	// things outside our control (e.g. window resize or webpage focus loss).
+	if ((engine.last_frame.t_poll - engine.last_frame.t > 100.0f) ||
+		(engine.this_frame.t - engine.last_frame.t_render > 100.0f))
+	{
+		engine.last_frame.ignore_for_timing = true;
+	}
+
 	if (!engine.last_frame.ignore_for_timing) {
 		engine.metrics_poll  .push(frame_start_t, engine.last_frame.t_poll   - engine.last_frame.t);
 		engine.metrics_update.push(frame_start_t, engine.last_frame.t_update - engine.last_frame.t_poll);
