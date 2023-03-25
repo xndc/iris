@@ -17,5 +17,5 @@ out vec2 FragCoord01;
 
 void main() {
 	gl_Position = vec4(Position.xz, 1.0, 1.0);
-	FragCoord01 = Position.xy * 0.5 + 0.5;
+	FragCoord01 = Position.xz * 0.5 + 0.5;
 }

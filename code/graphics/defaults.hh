@@ -49,6 +49,7 @@ namespace DefaultUniforms {
 	static constexpr Item LocalToWorld = {"LocalToWorld"};
 	static constexpr Item LocalToClip = {"LocalToClip"};
 	static constexpr Item LastLocalToClip = {"LastLocalToClip"};
+	static constexpr Item ClipToWorld = {"ClipToWorld"};
 
 	// Material sampler bindings
 	static constexpr Item TexAlbedo    = {"TexAlbedo"};
@@ -64,6 +65,9 @@ namespace DefaultUniforms {
 	// Shadow sampler
 	static constexpr Item ShadowMap = {"ShadowMap"};
 
+	// Camera parameters
+	static constexpr Item CameraPosition = {"CameraPosition"};
+
 	// Lighting parameters
 	static constexpr Item LightPosition = {"LightPosition"};
 	static constexpr Item LightColor = {"LightColor"};
@@ -71,10 +75,11 @@ namespace DefaultUniforms {
 	static constexpr Item all[] = {
 		RTAlbedo, RTNormal, RTMaterial, RTVelocity, RTColorHDR, RTDepth,
 		FramebufferSize,
-		LocalToWorld, LocalToClip, LastLocalToClip,
+		LocalToWorld, LocalToClip, LastLocalToClip, ClipToWorld,
 		TexAlbedo, TexNormal, TexOcclusion, TexOccRghMet,
 		ConstAlbedo, ConstMetallic, ConstRoughness,
 		ShadowMap,
+		CameraPosition,
 		LightPosition, LightColor,
 	};
 }

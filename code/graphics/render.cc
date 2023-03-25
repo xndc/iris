@@ -110,7 +110,7 @@ void BindFramebuffer(Framebuffer* framebuffer) {
 static uint32_t SetCoreUniforms(const Engine& engine, Program* program, Framebuffer* input) {
 	uint32_t next_texture_unit = 0;
 
-	program->uniform(DefaultUniforms::FramebufferSize, vec2(engine.display_w, engine.display_h));
+	program->set({DefaultUniforms::FramebufferSize, vec2(engine.display_w, engine.display_h)});
 
 	if (input) {
 		for (RenderTarget* rt : input->attachments) {
@@ -118,98 +118,12 @@ static uint32_t SetCoreUniforms(const Engine& engine, Program* program, Framebuf
 			glActiveTexture(GL_TEXTURE0 + next_texture_unit);
 			glBindTexture(GL_TEXTURE_2D, rt->gl_texture);
 			glBindSampler(next_texture_unit, DefaultSamplers::NearestRepeat.gl_sampler);
-			program->uniform(*(rt->uniform), next_texture_unit);
+			program->set({*(rt->uniform), int32_t(next_texture_unit)});
 			next_texture_unit++;
 		}
 	}
 
 	return next_texture_unit;
-}
-
-static void SetUniformValue(Program& program, UniformValue& u) {
-	using namespace glm;
-	constexpr ComponentType::Enum U8  = ComponentType::U8;
-	constexpr ComponentType::Enum I8  = ComponentType::I8;
-	constexpr ComponentType::Enum U16 = ComponentType::U16;
-	constexpr ComponentType::Enum I16 = ComponentType::I16;
-	constexpr ComponentType::Enum U32 = ComponentType::U32;
-	constexpr ComponentType::Enum I32 = ComponentType::I32;
-	constexpr ComponentType::Enum F32 = ComponentType::F32;
-
-	GLint loc = program.location(u.uniform);
-	switch (u.etype.v) {
-		case ElementType::SCALAR: switch (u.ctype.v) {
-			case U8:  glUniform1ui(loc, u.scalar.u8);  break;
-			case I8:  glUniform1i (loc, u.scalar.i8);  break;
-			case U16: glUniform1ui(loc, u.scalar.u16); break;
-			case I16: glUniform1i (loc, u.scalar.i16); break;
-			case U32: glUniform1ui(loc, u.scalar.u32); break;
-			case I32: glUniform1i (loc, u.scalar.i32); break;
-			case F32: glUniform1f (loc, u.scalar.f32); break;
-			case ComponentType::Count: Unreachable();
-		} break;
-		case ElementType::VEC2: switch (u.ctype.v) {
-			case U8:  { uvec2 v = u.vec2.u8;  glUniform2uiv(loc, 1, (uint *)(&v)); } break;
-			case I8:  { ivec2 v = u.vec2.i8;  glUniform2iv (loc, 1, (int  *)(&v)); } break;
-			case U16: { uvec2 v = u.vec2.u16; glUniform2uiv(loc, 1, (uint *)(&v)); } break;
-			case I16: { ivec2 v = u.vec2.i16; glUniform2iv (loc, 1, (int  *)(&v)); } break;
-			case U32: { uvec2 v = u.vec2.u32; glUniform2uiv(loc, 1, (uint *)(&v)); } break;
-			case I32: { ivec2 v = u.vec2.i32; glUniform2iv (loc, 1, (int  *)(&v)); } break;
-			case F32: {  vec2 v = u.vec2.f32; glUniform2fv (loc, 1, (float*)(&v)); } break;
-			case ComponentType::Count: Unreachable();
-		} break;
-		case ElementType::VEC3: switch (u.ctype.v) {
-			case U8:  { uvec3 v = u.vec3.u8;  glUniform3uiv(loc, 1, (uint *)(&v)); } break;
-			case I8:  { ivec3 v = u.vec3.i8;  glUniform3iv (loc, 1, (int  *)(&v)); } break;
-			case U16: { uvec3 v = u.vec3.u16; glUniform3uiv(loc, 1, (uint *)(&v)); } break;
-			case I16: { ivec3 v = u.vec3.i16; glUniform3iv (loc, 1, (int  *)(&v)); } break;
-			case U32: { uvec3 v = u.vec3.u32; glUniform3uiv(loc, 1, (uint *)(&v)); } break;
-			case I32: { ivec3 v = u.vec3.i32; glUniform3iv (loc, 1, (int  *)(&v)); } break;
-			case F32: {  vec3 v = u.vec3.f32; glUniform3fv (loc, 1, (float*)(&v)); } break;
-			case ComponentType::Count: Unreachable();
-		} break;
-		case ElementType::VEC4: switch (u.ctype.v) {
-			case U8:  { uvec4 v = u.vec4.u8;  glUniform4uiv(loc, 1, (uint *)(&v)); } break;
-			case I8:  { ivec4 v = u.vec4.i8;  glUniform4iv (loc, 1, (int  *)(&v)); } break;
-			case U16: { uvec4 v = u.vec4.u16; glUniform4uiv(loc, 1, (uint *)(&v)); } break;
-			case I16: { ivec4 v = u.vec4.i16; glUniform4iv (loc, 1, (int  *)(&v)); } break;
-			case U32: { uvec4 v = u.vec4.u32; glUniform4uiv(loc, 1, (uint *)(&v)); } break;
-			case I32: { ivec4 v = u.vec4.i32; glUniform4iv (loc, 1, (int  *)(&v)); } break;
-			case F32: {  vec4 v = u.vec4.f32; glUniform4fv (loc, 1, (float*)(&v)); } break;
-			case ComponentType::Count: Unreachable();
-		} break;
-		case ElementType::MAT2X2: switch (u.ctype.v) {
-			case U8:  { mat2 v = u.mat2x2.u8;  glUniformMatrix2fv(loc, 1, 0, (float*)(&v)); } break;
-			case I8:  { mat2 v = u.mat2x2.i8;  glUniformMatrix2fv(loc, 1, 0, (float*)(&v)); } break;
-			case U16: { mat2 v = u.mat2x2.u16; glUniformMatrix2fv(loc, 1, 0, (float*)(&v)); } break;
-			case I16: { mat2 v = u.mat2x2.i16; glUniformMatrix2fv(loc, 1, 0, (float*)(&v)); } break;
-			case U32: { mat2 v = u.mat2x2.u32; glUniformMatrix2fv(loc, 1, 0, (float*)(&v)); } break;
-			case I32: { mat2 v = u.mat2x2.i32; glUniformMatrix2fv(loc, 1, 0, (float*)(&v)); } break;
-			case F32: { mat2 v = u.mat2x2.f32; glUniformMatrix2fv(loc, 1, 0, (float*)(&v)); } break;
-			case ComponentType::Count: Unreachable();
-		} break;
-		case ElementType::MAT3X3: switch (u.ctype.v) {
-			case U8:  { mat3 v = u.mat3x3.u8;  glUniformMatrix3fv(loc, 1, 0, (float*)(&v)); } break;
-			case I8:  { mat3 v = u.mat3x3.i8;  glUniformMatrix3fv(loc, 1, 0, (float*)(&v)); } break;
-			case U16: { mat3 v = u.mat3x3.u16; glUniformMatrix3fv(loc, 1, 0, (float*)(&v)); } break;
-			case I16: { mat3 v = u.mat3x3.i16; glUniformMatrix3fv(loc, 1, 0, (float*)(&v)); } break;
-			case U32: { mat3 v = u.mat3x3.u32; glUniformMatrix3fv(loc, 1, 0, (float*)(&v)); } break;
-			case I32: { mat3 v = u.mat3x3.i32; glUniformMatrix3fv(loc, 1, 0, (float*)(&v)); } break;
-			case F32: { mat3 v = u.mat3x3.f32; glUniformMatrix3fv(loc, 1, 0, (float*)(&v)); } break;
-			case ComponentType::Count: Unreachable();
-		} break;
-		case ElementType::MAT4X4: switch (u.ctype.v) {
-			case U8:  { mat4 v = u.mat4x4.u8;  glUniformMatrix4fv(loc, 1, 0, (float*)(&v)); } break;
-			case I8:  { mat4 v = u.mat4x4.i8;  glUniformMatrix4fv(loc, 1, 0, (float*)(&v)); } break;
-			case U16: { mat4 v = u.mat4x4.u16; glUniformMatrix4fv(loc, 1, 0, (float*)(&v)); } break;
-			case I16: { mat4 v = u.mat4x4.i16; glUniformMatrix4fv(loc, 1, 0, (float*)(&v)); } break;
-			case U32: { mat4 v = u.mat4x4.u32; glUniformMatrix4fv(loc, 1, 0, (float*)(&v)); } break;
-			case I32: { mat4 v = u.mat4x4.i32; glUniformMatrix4fv(loc, 1, 0, (float*)(&v)); } break;
-			case F32: { mat4 v = u.mat4x4.f32; glUniformMatrix4fv(loc, 1, 0, (float*)(&v)); } break;
-			case ComponentType::Count: Unreachable();
-		} break;
-		case ElementType::Count: Unreachable();
-	}
 }
 
 void Render(const Engine& engine, RenderList& rlist, Camera* camera, Program* program,
@@ -219,9 +133,10 @@ void Render(const Engine& engine, RenderList& rlist, Camera* camera, Program* pr
 	glUseProgram(program->gl_program);
 
 	uint32_t next_texture_unit = SetCoreUniforms(engine, program, input);
-	for (UniformValue u : uniforms) {
-		SetUniformValue(*program, u);
-	}
+	for (UniformValue u : uniforms) { program->set(u); }
+
+	program->set({DefaultUniforms::CameraPosition, camera->world_position});
+	program->set({DefaultUniforms::ClipToWorld, camera->this_frame.inv_vp});
 
 	// Find per-view render list for this camera
 	auto viewlist_iter = std::find_if(rlist.views.cbegin(), rlist.views.cend(),
@@ -265,13 +180,11 @@ void Render(const Engine& engine, RenderList& rlist, Camera* camera, Program* pr
 				glActiveTexture(GL_TEXTURE0 + next_texture_unit);
 				glBindTexture(GL_TEXTURE_2D, mat.samplers[next_texture_unit].texture->gl_texture);
 				glBindSampler(next_texture_unit, mat.samplers[next_texture_unit].sampler->gl_sampler);
-				program->uniform(mat.samplers[next_texture_unit].uniform, next_texture_unit);
+				program->set({mat.samplers[next_texture_unit].uniform, int32_t(next_texture_unit)});
 				next_texture_unit++;
 			}
 
-			for (uint32_t i = 0; i < mat.num_uniforms; i++) {
-				SetUniformValue(*program, mat.uniforms[i]);
-			}
+			for (uint32_t i = 0; i < mat.num_uniforms; i++) { program->set(mat.uniforms[i]); }
 
 			last_material = &mat;
 		}
@@ -318,9 +231,11 @@ void RenderEffect(const Engine& engine, FragShader* fsh, Framebuffer* input, Fra
 	glUseProgram(program->gl_program);
 
 	SetCoreUniforms(engine, program, input);
-	for (UniformValue u : uniforms) {
-		SetUniformValue(*program, u);
-	}
+	for (UniformValue u : uniforms) { program->set(u); }
+
+	// TODO: Will we ever want to use RenderEffect for something other than the main camera?
+	program->set({DefaultUniforms::CameraPosition, engine.cam_main->world_position});
+	program->set({DefaultUniforms::ClipToWorld, engine.cam_main->this_frame.inv_vp});
 
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);

@@ -300,6 +300,8 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 				LOG_F(INFO, "-> material=%u -> %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_roughness.uniform.name,
 					const_roughness.vec4.f32.r, const_roughness.vec4.f32.g,
 					const_roughness.vec4.f32.b, const_roughness.vec4.f32.a);
+			} else {
+				const_roughness = UniformValue(DefaultUniforms::ConstRoughness, 1.0f);
 			}
 
 			SamplerBinding& smp_albedo = m.samplers[m.num_samplers++];
