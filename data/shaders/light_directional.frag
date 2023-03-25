@@ -120,6 +120,9 @@ void main() {
 
 	// Reconstruct world-space position from depth and inverse VP matrix
 	float depth = texelFetch(RTDepth, fragcoord, 0).r;
+	#ifdef DEPTH_HALF_TO_ONE
+		depth = (depth - 0.5) * 2.0;
+	#endif
 	vec4 clip_pos = vec4(FragCoord01 * 2.0 - 1.0, depth, 1.0);
 	vec4 unprojected_pos = ClipToWorld * clip_pos;
 	vec3 world_pos = unprojected_pos.xyz / unprojected_pos.w;

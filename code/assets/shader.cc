@@ -25,7 +25,6 @@ void InitShaderLoader() {
 	ShaderLoader_Initialised = true;
 }
 
-static uint64_t ShaderDefineHash = 0;
 static String ShaderDefineBlock = nullptr;
 static Engine ShaderDefineLastEngineState = {};
 
@@ -82,7 +81,18 @@ static bool UpdateShaderDefines(const Engine& engine) {
 				case DebugVisBuffer::SHADOWMAP:      write("#define DEBUG_VIS_SHADOWMAP\n");      break;
 				default: debug_vis_enabled = false;
 			}
-			if (debug_vis_enabled) { write("#define DEBUG_VIS"); }
+			if (debug_vis_enabled) { write("#define DEBUG_VIS\n"); }
+		});
+
+		define([&](){ return false; /* never updated */ }, [&]() {
+			if (glClipControl) {
+				// If ClipControl is supported and we use it to configure our clip space correctly,
+				// written depth range [0,1] will be read as [0,1] when sampling from RTDepth.
+				write("#define DEPTH_ZERO_TO_ONE\n");
+			} else {
+				// Otherwise, written depth range [0,1] will be read as [0.5,1].
+				write("#define DEPTH_HALF_TO_ONE\n");
+			}
 		});
 	};
 
