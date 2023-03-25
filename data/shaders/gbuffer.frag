@@ -1,4 +1,5 @@
-#version 330 core
+#version 300 es
+precision highp float;
 
 in vec2 VTexcoord0;
 in mat3 TangentBasisNormal;

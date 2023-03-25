@@ -1,4 +1,5 @@
-#version 330 core
+#version 300 es
+precision highp float;
 
 // Should match locations and names defined in graphics/defaults.hh
 layout (location = 0) in vec3 Position;

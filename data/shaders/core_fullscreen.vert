@@ -1,4 +1,5 @@
-#version 330 core
+#version 300 es
+precision highp float;
 
 // Vertex shader for full-screen passes. Maps X/Z coordinates into clip space X/Y.
 // Intended to be used with a Y-facing quad, i.e. with the following positions:

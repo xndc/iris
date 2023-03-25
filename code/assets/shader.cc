@@ -109,7 +109,7 @@ static void LoadShaderFromDisk(Shader& shader) {
 	shader.mtime = GetFileModificationTime(shader.source_path);
 	shader.source_code = ReadFile(shader.source_path);
 
-	const char* expected_version = "#version 330 core";
+	const char* expected_version = "#version 300 es";
 	if (strstr(shader.source_code.cstr, expected_version) != shader.source_code.cstr) {
 		LOG_F(ERROR, "Failed to load shader %s", shader.source_path.cstr);
 		LOG_F(ERROR, "Expected shader to start with %s", expected_version);
@@ -119,10 +119,7 @@ static void LoadShaderFromDisk(Shader& shader) {
 	GLuint gl_shader = glCreateShader(shader.gl_type);
 	shader.gl_shader = gl_shader;
 
-	const char* version = "#version 330 core\n";
-	if (!PLATFORM_DESKTOP) {
-		version = "#version 300 es\nprecision mediump float;\nprecision mediump int;\n";
-	}
+	const char* version = PLATFORM_DESKTOP ? "#version 330 core\n" : "#version 300 es\n";
 	const char* code = &shader.source_code.cstr[strlen(expected_version)];
 	const GLchar* sources[] = { version, ShaderDefineBlock.cstr, code };
 	GLint lengths[] = { (GLint)strlen(version), (GLint)(ShaderDefineBlock.size()), (GLint)strlen(code) };

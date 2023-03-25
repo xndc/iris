@@ -1,4 +1,5 @@
-#version 330 core
+#version 300 es
+precision highp float;
 
 // Debug fragment shader for visualising clip-space positions.
 
