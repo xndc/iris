@@ -20,6 +20,7 @@
 #include "assets/model.hh"
 #include "assets/shader.hh"
 #include "graphics/render.hh"
+#include "editor/editor_camera.hh"
 
 #if PLATFORM_WEB
 #include <emscripten.h>
@@ -94,11 +95,11 @@ SDLMAIN_DECLSPEC int main(int argc, char* argv[]) {
 	scene = new GameObject();
 
 	// znear=0.5f results in reasonably high depth precision even without clip-control support
-	engine.cam_main = scene->Add(Camera::NewInfPerspective(0.5f, 100.0f));
+	engine.cam_main = scene->Add(new EditorCamera());
+	engine.cam_main->position = vec3(0.0f, 5.0f, 0.0f);
 
 	Model* sponza = GetModelFromGLTF("data/models/Sponza/Sponza.gltf");
-	GameObject* sponza_obj = scene->AddCopy(sponza->root_object);
-	sponza_obj->scale = vec3(100.0f);
+	scene->AddCopy(sponza->root_object);
 
 	DirectionalLight* dl = scene->Add(new DirectionalLight());
 	dl->position = vec3(1, 1, 1);
@@ -232,12 +233,14 @@ static void loop(void) {
 
 	ImGui::Render(); // doesn't emit drawcalls, so it belongs in the update section
 
+#if 0
 	static float f = 0.0f;
 	const float dist = 100.0f, height = 100.0f;
 	vec3 pivot = vec3(0.0f, 100.0f, 0.0f);
 	f += 0.005f;
 	engine.cam_main->position = vec3(dist * sinf(f), height + (0.1f * height * sinf(f)), dist * cosf(f));
 	engine.cam_main->rotation = glm::quat_cast(glm::lookAt(engine.cam_main->position, pivot, vec3(0, 1, 0)));
+#endif
 
 	scene->RecursiveUpdate(engine);
 	scene->RecursiveUpdateTransforms();

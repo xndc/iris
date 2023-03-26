@@ -46,6 +46,7 @@ add_executable(Main
 	"code/assets/shader.cc"
 	"code/scene/gameobject.cc"
 	"code/scene/camera.cc"
+	"code/editor/editor_camera.cc"
 )
 target_include_directories(Main PRIVATE "code")
 set_target_properties(Main PROPERTIES OUTPUT_NAME "${CMAKE_PROJECT_NAME}")
