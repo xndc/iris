@@ -58,40 +58,43 @@ static void ProjMatrixInfPerspectiveRev(float vfov_rad, float znear, float inv_a
 	*out_inv_projection = glm::inverse(*out_projection);
 }
 
+bool Camera::UpdateInput(Engine& engine) {
+	input.inv_aspect = float(engine.display_h) / float(engine.display_w);
+	input.world_position = world_position;
+	input.world_rotation = world_rotation;
+	return !(input == last_input);
+}
+
 void Camera::LateUpdate(Engine& engine) {
+	if (!UpdateInput(engine)) { return; }
+
+	last_input = input;
 	last_frame = this_frame;
-	this_frame.inv_aspect = float(engine.display_h) / float(engine.display_w);
 
 	if (projection != ORTHOGRAPHIC) {
 		this_frame.hfov_rad = ToRadians(input.hfov_deg);
-		this_frame.vfov_rad = HorizontalToVerticalFOV(this_frame.hfov_rad, this_frame.inv_aspect);
+		// We assume HFOVs are given for the standard 4:3 aspect ratio rather than the current one.
+		// This is probably non-standard, but matches my intuition of what an FOV slider should do.
+		this_frame.vfov_rad = HorizontalToVerticalFOV(this_frame.hfov_rad, (3.0f / 4.0f));
 	}
 
 	switch (projection) {
 		case ORTHOGRAPHIC: {
-			ProjMatrixOrthographic(input.zoom, input.znear, input.zfar, this_frame.inv_aspect,
+			ProjMatrixOrthographic(input.zoom, input.znear, input.zfar, input.inv_aspect,
 				&this_frame.proj, &this_frame.inv_proj);
 		} break;
 		case PERSPECTIVE_REVZ: {
-			ProjMatrixPerspectiveRev(this_frame.vfov_rad, input.znear, input.zfar, this_frame.inv_aspect,
+			ProjMatrixPerspectiveRev(this_frame.vfov_rad, input.znear, input.zfar, input.inv_aspect,
 				&this_frame.proj, &this_frame.inv_proj);
 		} break;
 		case INFINITE_PERSPECTIVE_REVZ: {
-			ProjMatrixInfPerspectiveRev(this_frame.vfov_rad, input.znear, this_frame.inv_aspect,
+			ProjMatrixInfPerspectiveRev(this_frame.vfov_rad, input.znear, input.inv_aspect,
 				&this_frame.proj, &this_frame.inv_proj);
 		} break;
 	}
 
 	this_frame.view = glm::translate(glm::mat4_cast(world_rotation), -world_position);
 	this_frame.vp = this_frame.proj * this_frame.view;
-
-	#if 0 // FIXME: Allow camera rotation to be specified in Euler angles; would look something like this:
-	this_frame.view = glm::translate(
-		glm::rotate(rotation.x, glm::vec3(1.0f, 0.0f, 0.0f)) *
-		glm::rotate(rotation.y, glm::vec3(0.0f, 1.0f, 0.0f)) *
-		glm::rotate(rotation.z, glm::vec3(0.0f, 0.0f, 1.0f)),
-		-position);
-	#endif
 
 	// FIXME: Inverses should be computed from transform, not like this
 	this_frame.inv_view = glm::inverse(this_frame.view);

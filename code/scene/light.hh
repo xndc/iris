@@ -2,17 +2,12 @@
 #include "scene/gameobject.hh"
 #include "scene/camera.hh"
 
-struct DirectionalLight : Camera {
+struct DirectionalLight : OrthographicCamera {
 	// Returns the size of this object. Subclasses must include this exact definition.
 	virtual constexpr size_t Size() const override { return sizeof(*this); }
 
-	DirectionalLight(): Camera{} {
-		projection = ORTHOGRAPHIC;
-		// No idea why these values work
-		input.znear = 100.0f;
-		input.zfar = -1000.0f;
-		input.zoom = 500.0f;
-	}
+	// FIXME: No idea why these values work, look into it and tune them
+	DirectionalLight(): OrthographicCamera{100.0f, -1000.0f, 500.0f} {}
 
 	uint32_t shadowmap_size = 4096;
 	float shadow_bias_min = 0.0002f;
