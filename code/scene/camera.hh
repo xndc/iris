@@ -4,9 +4,8 @@
 struct Engine;
 
 struct Camera : GameObject {
-	static constexpr GameObjectType TypeTag = {"Camera"};
-	const GameObjectType& Type() const override { return TypeTag; }
-	const size_t Size() const override { return sizeof(*this); }
+	// Returns the size of this object. Subclasses must include this exact definition.
+	virtual constexpr size_t Size() const override { return sizeof(*this); }
 
 	enum Projection {
 		ORTHOGRAPHIC,

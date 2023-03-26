@@ -11,7 +11,17 @@ GameObject::GameObject(const char* name) : assigned_name{name ? String::copy(nam
 
 String GameObject::Name() const {
 	if (assigned_name) { return String::view(assigned_name); }
-	return String::format("%s#%u", Type().name, unique_id);
+	const char* type_name = typeid(*this).name();
+	// std::type_info::name() is compiler-dependent. MSVC uses "struct GameObject", Clang uses a
+	// mangled version that starts with a size indicator. Try to extract a meaningful string from it
+	// by looking for the first uppercase letter.
+	for (size_t i = 0; type_name[i] != '\0'; i++) {
+		if (type_name[i] >= 'A' && type_name[i] <= 'Z') {
+			type_name = &type_name[i];
+			break;
+		}
+	}
+	return String::format("%s#%u", type_name, unique_id);
 }
 
 String GameObject::Name() {

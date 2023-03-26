@@ -9,15 +9,8 @@
 
 struct Engine;
 
-// Tag used to identify a particular subclass of GameObject.
-struct GameObjectType {
-	uint64_t hash;
-	char name[64 - sizeof(hash)];
-	constexpr GameObjectType(const char name[]): hash{Hash64(name)}, name{} {
-		StringCopy(this->name, name, sizeof(this->name));
-	}
-	constexpr bool operator==(const GameObjectType& rhs) const { return hash == rhs.hash; }
-	constexpr bool operator!=(const GameObjectType& rhs) const { return hash != rhs.hash; }
+struct GameObjectBase {
+	virtual constexpr size_t Size() const = 0;
 };
 
 /* Represents an object or entity that is part of a scene graph. Each GameObject has a name, a
@@ -26,13 +19,9 @@ struct GameObjectType {
  *
  * GameObjects should always be heap-allocated with new. They may call delete on themselves.
  */
-struct GameObject {
-	// Unique tag for this GameObject subclass. Each subclass should have its own tag and Type().
-	static constexpr GameObjectType TypeTag = {"GameObject"};
-	virtual const GameObjectType& Type() const { return TypeTag; }
-
-	// Size of this GameObject subclass in bytes. Each subclass should implement this.
-	virtual const size_t Size() const { return sizeof(*this); }
+struct GameObject: GameObjectBase {
+	// Returns the size of this object. Subclasses must include this exact definition.
+	virtual constexpr size_t Size() const override { return sizeof(*this); }
 
 	// Pointer to this object's direct parent, or nullptr if this object is the root of a scene.
 	GameObject* parent = nullptr;
@@ -173,9 +162,8 @@ struct Mesh;
 struct Material;
 
 struct MeshInstance : GameObject {
-	static constexpr GameObjectType TypeTag = {"MeshInstance"};
-	const GameObjectType& Type() const override { return TypeTag; }
-	const size_t Size() const override { return sizeof(*this); }
+	// Returns the size of this object. Subclasses must include this exact definition.
+	virtual constexpr size_t Size() const override { return sizeof(*this); }
 
 	Mesh* mesh;
 	Material* material;

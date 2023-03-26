@@ -3,9 +3,8 @@
 #include "scene/camera.hh"
 
 struct DirectionalLight : Camera {
-	static constexpr GameObjectType TypeTag = {"DirectionalLight"};
-	const GameObjectType& Type() const override { return TypeTag; }
-	const size_t Size() const override { return sizeof(*this); }
+	// Returns the size of this object. Subclasses must include this exact definition.
+	virtual constexpr size_t Size() const override { return sizeof(*this); }
 
 	DirectionalLight(): Camera{} {
 		projection = ORTHOGRAPHIC;
@@ -25,17 +24,15 @@ struct DirectionalLight : Camera {
 };
 
 struct PointLight : GameObject {
-	static constexpr GameObjectType TypeTag = {"PointLight"};
-	const GameObjectType& Type() const override { return TypeTag; }
-	const size_t Size() const override { return sizeof(*this); }
+	// Returns the size of this object. Subclasses must include this exact definition.
+	virtual constexpr size_t Size() const override { return sizeof(*this); }
 
 	vec3 color;
 };
 
 struct AmbientCube : GameObject {
-	static constexpr GameObjectType TypeTag = {"AmbientCube"};
-	const GameObjectType& Type() const override { return TypeTag; }
-	const size_t Size() const override { return sizeof(*this); }
+	// Returns the size of this object. Subclasses must include this exact definition.
+	virtual constexpr size_t Size() const override { return sizeof(*this); }
 
 	union {
 		vec3 color[6];

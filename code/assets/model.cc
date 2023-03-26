@@ -459,8 +459,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 	for (uint32_t inode = 0; inode < objects.size(); inode++) {
 		GameObject* obj = objects[inode];
 		String extra = "";
-		if (obj->Type() == MeshInstance::TypeTag) {
-			MeshInstance* instance = static_cast<MeshInstance*>(objects[inode]);
+		if (MeshInstance* instance = dynamic_cast<MeshInstance*>(objects[inode])) {
 			extra = String::format(" mesh=<%p> material=<%p>", instance->mesh, instance->material);
 		}
 		LOG_F(INFO,

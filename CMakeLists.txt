@@ -68,14 +68,6 @@ else()
 	target_compile_options(Main PRIVATE -fno-exceptions)
 endif()
 
-# Disable runtime type information. This project doesn't need typeid or dynamic_cast.
-if (MSVC) # MSVC + Clang-CL
-	delete_compiler_flags(" [-/]GR-?")
-	target_compile_options(Main PRIVATE /GR-)
-else()
-	target_compile_options(Main PRIVATE -fno-rtti)
-endif()
-
 # Enable floating point math optimisations that break IEEE-754 or the C/C++ spec.
 if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 	target_compile_options(Main PRIVATE /fp:fast)

@@ -52,27 +52,22 @@ void RenderListPerView::UpdateFromScene(const Engine& engine, GameObject* scene,
 	uint32_t num_mesh_instances = 0;
 
 	scene->Recurse([&](GameObject& obj) {
-		switch (obj.Type().hash) {
+		if (MeshInstance* mi = dynamic_cast<MeshInstance*>(&obj)) {
 			// For mesh instances, we have a two step process:
 			// 1. Figure out how much space to reserve in RenderListPerView::mesh_instances here
 			// 2. Copy instance world transforms into the vector in the next pass
 			// There's certainly better ways to handle meshes, but this will do for now.
-			case MeshInstance::TypeTag.hash: {
-				MeshInstance& mi = static_cast<MeshInstance&>(obj);
-				if (!mi.mesh || mi.mesh->gl_vertex_array == 0) { return; }
-				RenderableMeshKey key = { .mesh = mi.mesh, .material = mi.material };
-				RenderableMesh& rmesh = meshes[key];
-				if (rmesh.mesh == nullptr) {
-					rmesh.mesh = key.mesh;
-					rmesh.material = key.material;
-					rmesh.first_instance = UINT32_MAX;
-					rmesh.instance_count = 0;
-				}
-				rmesh.instance_count++;
-				num_mesh_instances++;
-			} break;
-
-			default:;
+			if (!mi->mesh || mi->mesh->gl_vertex_array == 0) { return; }
+			RenderableMeshKey key = { .mesh = mi->mesh, .material = mi->material };
+			RenderableMesh& rmesh = meshes[key];
+			if (rmesh.mesh == nullptr) {
+				rmesh.mesh = key.mesh;
+				rmesh.material = key.material;
+				rmesh.first_instance = UINT32_MAX;
+				rmesh.instance_count = 0;
+			}
+			rmesh.instance_count++;
+			num_mesh_instances++;
 		}
 	});
 
@@ -81,10 +76,9 @@ void RenderListPerView::UpdateFromScene(const Engine& engine, GameObject* scene,
 
 	scene->Recurse([&](GameObject& obj) {
 		// Copy instance world transforms into the just-allocated slots in mesh_instances
-		if (obj.Type() == MeshInstance::TypeTag) {
-			MeshInstance& mi = static_cast<MeshInstance&>(obj);
-			if (!mi.mesh || mi.mesh->gl_vertex_array == 0) { return; }
-			RenderableMeshKey key = { .mesh = mi.mesh, .material = mi.material };
+		if (MeshInstance* mi = dynamic_cast<MeshInstance*>(&obj)) {
+			if (!mi->mesh || mi->mesh->gl_vertex_array == 0) { return; }
+			RenderableMeshKey key = { .mesh = mi->mesh, .material = mi->material };
 			RenderableMesh& rmesh = meshes[key];
 			if (rmesh.first_instance == UINT32_MAX) {
 				// Allocate a region inside mesh_instances for this mesh's instances
@@ -94,12 +88,12 @@ void RenderListPerView::UpdateFromScene(const Engine& engine, GameObject* scene,
 				rmesh.instance_count = 0;
 			}
 			// Compute local-to-clip (MVP) transform for this instance
-			mat4 local_to_clip = camera->this_frame.vp * mi.world_transform;
-			if (MeshInstanceShouldBeRendered(mi, *camera, local_to_clip)) {
+			mat4 local_to_clip = camera->this_frame.vp * mi->world_transform;
+			if (MeshInstanceShouldBeRendered(*mi, *camera, local_to_clip)) {
 				mesh_instances[rmesh.first_instance + (rmesh.instance_count++)] = RenderableMeshInstanceData{
-					.local_to_world = mi.world_transform,
+					.local_to_world = mi->world_transform,
 					.local_to_clip = local_to_clip,
-					.last_local_to_clip = camera->last_frame.vp * mi.world_transform,
+					.last_local_to_clip = camera->last_frame.vp * mi->world_transform,
 				};
 			}
 		}
@@ -116,34 +110,25 @@ void RenderList::UpdateFromScene(const Engine& engine, GameObject* scene, Camera
 	main_view.camera = main_camera;
 
 	scene->Recurse([&](GameObject& obj) {
-		switch (obj.Type().hash) {
-			case DirectionalLight::TypeTag.hash: {
-				DirectionalLight& light = static_cast<DirectionalLight&>(obj);
-				RenderableDirectionalLight& r = directional_lights.emplace_back();
-				r.color = light.color;
-				// FIXME: We probably want this to come from the light's rotation, like every other
-				// engine does, rather than its position. But this is a bit simpler to implement.
-				r.position = glm::normalize(light.world_position);
-				// Directional lights are shadowcasters, so we need to consider another view.
-				RenderListPerView& light_view = views.emplace_back();
-				light_view.camera = static_cast<Camera*>(&light);
-			} break;
-
-			case PointLight::TypeTag.hash: {
-				PointLight& light = static_cast<PointLight&>(obj);
-				RenderablePointLight& r = point_lights.emplace_back();
-				r.color = light.color;
-				r.position = light.world_position;
-			} break;
-
-			case AmbientCube::TypeTag.hash: {
-				AmbientCube& cube = static_cast<AmbientCube&>(obj);
-				RenderableAmbientCube& r = ambient_cubes.emplace_back();
-				memcpy(&r.color, &cube.color, sizeof(r.color));
-				r.position = cube.world_position;
-			} break;
-
-			default:;
+		if (DirectionalLight* light = dynamic_cast<DirectionalLight*>(&obj)) {
+			RenderableDirectionalLight& r = directional_lights.emplace_back();
+			r.color = light->color;
+			// FIXME: We probably want this to come from the light's rotation, like every other
+			// engine does, rather than its position. But this is a bit simpler to implement.
+			r.position = glm::normalize(light->world_position);
+			// Directional lights are shadowcasters, so we need to consider another view.
+			RenderListPerView& light_view = views.emplace_back();
+			light_view.camera = static_cast<Camera*>(light);
+		}
+		else if (PointLight* light = dynamic_cast<PointLight*>(&obj)) {
+			RenderablePointLight& r = point_lights.emplace_back();
+			r.color = light->color;
+			r.position = light->world_position;
+		}
+		else if (AmbientCube* cube = dynamic_cast<AmbientCube*>(&obj)) {
+			RenderableAmbientCube& r = ambient_cubes.emplace_back();
+			memcpy(&r.color, &cube->color, sizeof(r.color));
+			r.position = cube->world_position;
 		}
 	});
 
