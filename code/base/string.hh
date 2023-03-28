@@ -48,9 +48,7 @@ struct String {
 
 	// Returns a String that acts as a view into another String. Care should be taken to make sure
 	// that this String doesn't outlive its target.
-	static String view(const String& str) {
-		return String(str.cstr, str.capacity, str._size);
-	}
+	static String view(const String& str) { return String(str.cstr, 0, str._size); }
 
 	// Copies a block of memory starting at the given char* pointer into a String.
 	static String copy(const char* cstr, uint32_t size);
