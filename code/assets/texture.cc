@@ -54,8 +54,10 @@ static void UploadStagedLevels(Texture& texture) {
 
 	for (uint32_t i = 0; i < texture.num_levels; i++) {
 		Texture::Level& l = texture.levels[i];
-		glTexSubImage2D(GL_TEXTURE_2D, i, 0, 0, l.width, l.height, format, type, l.staging_buffer);
-		l.staging_buffer = nullptr;
+		if (l.staging_buffer) {
+			glTexSubImage2D(GL_TEXTURE_2D, i, 0, 0, l.width, l.height, format, type, l.staging_buffer);
+			l.staging_buffer = nullptr;
+		}
 	}
 
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -170,7 +172,7 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 	static constexpr bool SOFTWARE_MIPGEN = false;
 
 	float time_mipgen = 0.0f;
-	texture.num_levels = (SOFTWARE_MIPGEN && generate_mips) ? MipchainLevelCount(w, h) : 1;
+	texture.num_levels = generate_mips ? MipchainLevelCount(w, h) : 1;
 	uint32_t texture_size = 0;
 	uint32_t mip_w = texture.width, mip_h = texture.height;
 	for (uint32_t i = 0; i < texture.num_levels; i++) {
@@ -180,10 +182,12 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 	}
 
 	// Allocate staging mipchain and copy level 0 into it
-	uint8_t* mipchain = static_cast<uint8_t*>(calloc(texture_size, 1));
-	CHECK_NOTNULL_F(mipchain);
-	texture.levels[0].staging_buffer = mipchain;
-	memcpy(mipchain, image, w * h * c);
+	size_t level0_size = w * h * c;
+	size_t staging_size = SOFTWARE_MIPGEN ? texture_size : level0_size;
+	uint8_t* staging = static_cast<uint8_t*>(calloc(staging_size, 1));
+	CHECK_NOTNULL_F(staging);
+	texture.levels[0].staging_buffer = staging;
+	memcpy(staging, image, level0_size);
 
 	if (SOFTWARE_MIPGEN && generate_mips) {
 		uint32_t mip_w = texture.width, mip_h = texture.height;
@@ -193,7 +197,7 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 			mip_h = Max(1U, mip_h / 2U);
 			texture.levels[i].width  = mip_w;
 			texture.levels[i].height = mip_h;
-			uint8_t* staging_buffer = &mipchain[mip_offset];
+			uint8_t* staging_buffer = &staging[mip_offset];
 			mip_offset += mip_w * mip_h * c;
 			texture.levels[i].staging_buffer = staging_buffer;
 			// Downscale from previous level to current level
@@ -219,6 +223,7 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 
 	if (!SOFTWARE_MIPGEN && generate_mips) {
 		glBindTexture(GL_TEXTURE_2D, texture.gl_texture);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glGenerateMipmap(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, 0);
 		uint64_t time_mipgen_end = SDL_GetPerformanceCounter();
@@ -230,7 +235,7 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 		time_disk_load, time_mipgen, time_upload, texture.gl_texture);
 
 	stbi_image_free(image);
-	free(mipchain);
+	free(staging);
 
 	return &texture;
 }
