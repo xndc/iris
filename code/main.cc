@@ -161,16 +161,17 @@ static void loop(void) {
 		engine.this_frame.ignore_for_timing = true;
 	}
 
+	// Start ImGUI frame early to allow the various update functions to use it
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplSDL2_NewFrame();
+	ImGui::NewFrame();
+
 	uint32_t asset_loader_ops_left = 1;
 	while (asset_loader_ops_left) {
 		asset_loader_ops_left = ProcessAssetLoadOperation();
 	}
 
 	ProcessShaderUpdates(engine);
-
-	ImGui_ImplOpenGL3_NewFrame();
-	ImGui_ImplSDL2_NewFrame();
-	ImGui::NewFrame();
 
 	ImGui::SetNextWindowPos(ImVec2(10, 10));
 	ImGui::SetNextWindowBgAlpha(0.4f);
@@ -231,11 +232,11 @@ static void loop(void) {
 	ImGui::PopFont();
 	ImGui::End();
 
-	ImGui::Render(); // doesn't emit drawcalls, so it belongs in the update section
-
 	scene->RecursiveUpdate(engine);
 	scene->RecursiveUpdateTransforms();
 	scene->RecursiveLateUpdate(engine);
+
+	ImGui::Render(); // doesn't emit drawcalls, so it belongs in the update section; should be last
 
 	engine.this_frame.t_update = (SDL_GetPerformanceCounter() - engine.initial_t) * msec_per_tick;
 
