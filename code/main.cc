@@ -233,15 +233,6 @@ static void loop(void) {
 
 	ImGui::Render(); // doesn't emit drawcalls, so it belongs in the update section
 
-#if 0
-	static float f = 0.0f;
-	const float dist = 100.0f, height = 100.0f;
-	vec3 pivot = vec3(0.0f, 100.0f, 0.0f);
-	f += 0.005f;
-	engine.cam_main->position = vec3(dist * sinf(f), height + (0.1f * height * sinf(f)), dist * cosf(f));
-	engine.cam_main->rotation = glm::quat_cast(glm::lookAt(engine.cam_main->position, pivot, vec3(0, 1, 0)));
-#endif
-
 	scene->RecursiveUpdate(engine);
 	scene->RecursiveUpdateTransforms();
 	scene->RecursiveLateUpdate(engine);
