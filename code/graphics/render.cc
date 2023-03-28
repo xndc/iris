@@ -126,7 +126,7 @@ static uint32_t SetCoreUniforms(const Engine& engine, Program* program, Framebuf
 	return next_texture_unit;
 }
 
-void Render(const Engine& engine, RenderList& rlist, Camera* camera, Program* program,
+void Render(Engine& engine, RenderList& rlist, Camera* camera, Program* program,
 	Framebuffer* input, Framebuffer* output, std::initializer_list<UniformValue> uniforms)
 {
 	BindFramebuffer(output);
@@ -145,6 +145,7 @@ void Render(const Engine& engine, RenderList& rlist, Camera* camera, Program* pr
 	const RenderListPerView& viewlist = *viewlist_iter;
 
 	Material* last_material = nullptr;
+	uint32_t num_drawcalls = 0, num_polys_rendered = 0;
 
 	for (const auto& [key, rmesh] : viewlist.meshes) {
 		Mesh& mesh = *rmesh.mesh;
@@ -211,6 +212,9 @@ void Render(const Engine& engine, RenderList& rlist, Camera* camera, Program* pr
 
 			glDrawElements(mesh.ptype.gl_enum(), mesh.index_buffer.total_components(),
 				mesh.index_buffer.ctype.gl_enum(), nullptr);
+
+			num_drawcalls += 1;
+			num_polys_rendered += mesh.index_buffer.total_components() / mesh.ptype.vertices();
 		}
 	}
 
@@ -221,9 +225,12 @@ void Render(const Engine& engine, RenderList& rlist, Camera* camera, Program* pr
 	}
 
 	glBindVertexArray(0);
+
+	engine.this_frame.total_drawcalls += num_drawcalls;
+	engine.this_frame.total_polys_rendered += num_polys_rendered;
 }
 
-void RenderEffect(const Engine& engine, FragShader* fsh, Framebuffer* input, Framebuffer* output,
+void RenderEffect(Engine& engine, FragShader* fsh, Framebuffer* input, Framebuffer* output,
 	std::initializer_list<UniformValue> uniforms)
 {
 	BindFramebuffer(output);

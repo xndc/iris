@@ -140,18 +140,21 @@ static void loop(void) {
 	}
 
 	SDL_Event event = {0};
-	while (SDL_PollEvent(&event)) { switch (event.type) {
-		case SDL_QUIT: {
-			exit(0);
-		} break;
-		case SDL_WINDOWEVENT: switch (event.window.event) {
-			case SDL_WINDOWEVENT_CLOSE: {
-				if (event.window.windowID == SDL_GetWindowID(window)) {
-					exit(0);
-				}
+	while (SDL_PollEvent(&event)) {
+		switch (event.type) {
+			case SDL_QUIT: {
+				exit(0);
 			} break;
-		} break;
-	}}
+			case SDL_WINDOWEVENT: switch (event.window.event) {
+				case SDL_WINDOWEVENT_CLOSE: {
+					if (event.window.windowID == SDL_GetWindowID(window)) {
+						exit(0);
+					}
+				} break;
+			} break;
+		}
+		ImGui_ImplSDL2_ProcessEvent(&event);
+	}
 
 	SDL_GL_GetDrawableSize(window, (int*)&engine.display_w, (int*)&engine.display_h);
 	UpdateRenderTargets(engine);
@@ -173,12 +176,12 @@ static void loop(void) {
 
 	ProcessShaderUpdates(engine);
 
+	ImGui::PushFont(font_inter_14);
 	ImGui::SetNextWindowPos(ImVec2(10, 10));
-	ImGui::SetNextWindowBgAlpha(0.4f);
+	ImGui::SetNextWindowBgAlpha(0.5f);
 	ImGui::Begin("Stats", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration |
 		ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
 		ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
-	ImGui::PushFont(font_inter_14);
 	ImPlot::PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0,0));
 	if (engine.metrics_poll.used != 0 &&
 		ImPlot::BeginPlot("Stats Plot", ImVec2(320, 140), ImPlotFlags_NoMouseText | ImPlotFlags_NoTitle |
@@ -229,8 +232,19 @@ static void loop(void) {
 		ImPlot::EndPlot();
 	}
 	ImPlot::PopStyleVar();
-	ImGui::PopFont();
 	ImGui::End();
+	ImGui::SetNextWindowPos(ImVec2(10, 170));
+	ImGui::SetNextWindowBgAlpha(0.5f);
+	if (ImGui::Begin("Draw Stats", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration |
+		ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
+		ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+	{
+		ImGui::Text("Draws: %u", engine.last_frame.total_drawcalls);
+		ImGui::SameLine(80);
+		ImGui::Text("Polys: %u", engine.last_frame.total_polys_rendered);
+	}
+	ImGui::End();
+	ImGui::PopFont();
 
 	scene->RecursiveUpdate(engine);
 	scene->RecursiveUpdateTransforms();

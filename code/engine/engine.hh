@@ -42,16 +42,8 @@ struct FrameState {
 	float t_update; // after asset loading ops are processed and GameObjects are updated
 	float t_render; // after drawcalls are submitted to GPU
 
-	// Mouse inputs, which we need to diff across frames:
-	// TODO: We should have a dedicated input system for this sort of thing.
-	float mouse_x;
-	float mouse_y;
-	float mouse_dx;
-	float mouse_dy;
-
-	uint32_t total_drawcalls;
-	uint32_t total_polys_rendered;
-	uint32_t total_polys_culled;
+	uint32_t total_drawcalls = 0;
+	uint32_t total_polys_rendered = 0;
 
 	// If true, all timing fata for this frame will be discarded. Used to avoid breaking the
 	// in-game stats display when the game is paused.

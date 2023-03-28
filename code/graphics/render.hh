@@ -45,10 +45,10 @@ void UpdateShadowRenderTargets(const DirectionalLight& light);
 Framebuffer* GetFramebuffer(std::initializer_list<RenderTarget*> attachments);
 void BindFramebuffer(Framebuffer* framebuffer);
 
-void Render(const Engine& engine, RenderList& rlist, Camera* camera, Program* program,
+void Render(Engine& engine, RenderList& rlist, Camera* camera, Program* program,
 	Framebuffer* input, Framebuffer* output, std::initializer_list<UniformValue> uniforms);
 
-void RenderEffect(const Engine& engine, FragShader* fsh, Framebuffer* input, Framebuffer* output,
+void RenderEffect(Engine& engine, FragShader* fsh, Framebuffer* input, Framebuffer* output,
 	std::initializer_list<UniformValue> uniforms);
 
 void* StartRenderPass(const char* name);
