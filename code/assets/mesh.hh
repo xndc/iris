@@ -52,7 +52,6 @@ struct ElementType {
 	}
 };
 
-
 struct ComponentType {
 	enum Enum : uint8_t {
 		I8,
