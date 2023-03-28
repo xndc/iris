@@ -74,7 +74,8 @@ GameObject::ChildIterator& GameObject::ChildIterator::operator++() {
 		if (idx >= CountOf(node->objects)) {
 			node = node->next;
 			idx = 0;
-		} else if (node->objects[idx] != nullptr && !(node->objects[idx]->deleted)) {
+		}
+		if (node != nullptr && node->objects[idx] != nullptr && !(node->objects[idx]->deleted)) {
 			break;
 		}
 	}
