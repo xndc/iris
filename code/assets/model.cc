@@ -286,9 +286,8 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 			if (json_object_has_value(jmr, "metallicFactor")) {
 				const_metallic = UniformValue(DefaultUniforms::ConstMetallic,
 					float(json_object_get_number(jmr, "metallicFactor")));
-				LOG_F(INFO, "-> material=%u -> %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_metallic.uniform.name,
-					const_metallic.vec4.f32.r, const_metallic.vec4.f32.g,
-					const_metallic.vec4.f32.b, const_metallic.vec4.f32.a);
+				LOG_F(INFO, "-> material=%u -> %s scalar.f32 %.02f", imat, const_metallic.uniform.name,
+					const_metallic.scalar.f32);
 			} else {
 				const_metallic = UniformValue(DefaultUniforms::ConstMetallic, 1.0f);
 			}
@@ -297,9 +296,8 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 			if (json_object_has_value(jmr, "roughnessFactor")) {
 				const_roughness = UniformValue(DefaultUniforms::ConstRoughness,
 					float(json_object_get_number(jmr, "roughnessFactor")));
-				LOG_F(INFO, "-> material=%u -> %s vec4.f32 %.02f %.02f %.02f %.02f", imat, const_roughness.uniform.name,
-					const_roughness.vec4.f32.r, const_roughness.vec4.f32.g,
-					const_roughness.vec4.f32.b, const_roughness.vec4.f32.a);
+				LOG_F(INFO, "-> material=%u -> %s scalar.f32 %.02f", imat, const_roughness.uniform.name,
+					const_roughness.scalar.f32);
 			} else {
 				const_roughness = UniformValue(DefaultUniforms::ConstRoughness, 1.0f);
 			}
