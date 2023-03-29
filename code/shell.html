@@ -134,6 +134,7 @@
 			};
 			window.addEventListener("resize", ResizeCanvas);
 			ResizeCanvas();
+			document.addEventListener("contextmenu", function PreventContextMenu(e) { event.preventDefault(); });
 			/* set up Module object for Emscripten */
 			window.Module = {
 				preRun: [],
