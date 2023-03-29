@@ -8,6 +8,7 @@
 #include <SDL.h>
 
 #include "base/debug.hh"
+#include "engine/deferred.hh"
 
 static bool TextureLoader_Initialised = false;
 
@@ -128,36 +129,27 @@ static uint8_t MipchainLevelCount(uint32_t w, uint32_t h) {
 	return 1 + static_cast<uint8_t>(floorf(log2f(float(Max(Max(w, h), 2U)))));
 }
 
-Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool generate_mips) {
-	Texture& texture = TextureLoader_Cache[source_path_hash];
-
-	bool uninitialised = (texture.source_path == nullptr);
-	bool needs_reupload = (!uninitialised && (generate_mips && !texture.generate_mips));
-	if (!(uninitialised || needs_reupload)) {
-		return &texture;
-	}
+static void UploadTexture(Engine& engine, void* pv_texture) {
+	Texture& texture = *(static_cast<Texture*>(pv_texture));
 
 	float ticks_per_msec = float(SDL_GetPerformanceFrequency()) * 0.001f;
 	uint64_t timestamp = SDL_GetPerformanceCounter();
 
-	if (texture.gl_texture != 0 && needs_reupload) {
+	if (texture.gl_texture != 0) {
 		glDeleteTextures(1, &texture.gl_texture);
 		memset(&texture.levels, 0, sizeof(texture.levels));
 	}
 
-	texture.source_path = String::copy(source_path);
-	texture.generate_mips = generate_mips;
-
 	int w, h, c;
-	uint8_t* image = stbi_load(source_path, &w, &h, &c, 0);
+	uint8_t* image = stbi_load(texture.source_path, &w, &h, &c, 0);
 	if (!image) {
-		LOG_F(ERROR, "Failed to load %s: %s", source_path, stbi_failure_reason());
+		LOG_F(ERROR, "Failed to load %s: %s", texture.source_path.cstr, stbi_failure_reason());
 		texture.width = 1;
 		texture.height = 1;
 		texture.channels = 4;
 		texture.num_levels = 1;
 		texture.gl_texture = DefaultTextures::Red_1x1.gl_texture;
-		return &texture;
+		return;
 	}
 	texture.width  = texture.levels[0].width  = static_cast<uint32_t>(w);
 	texture.height = texture.levels[0].height = static_cast<uint32_t>(h);
@@ -172,7 +164,7 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 	static constexpr bool SOFTWARE_MIPGEN = false;
 
 	float time_mipgen = 0.0f;
-	texture.num_levels = generate_mips ? MipchainLevelCount(w, h) : 1;
+	texture.num_levels = texture.generate_mips ? MipchainLevelCount(w, h) : 1;
 	uint32_t texture_size = 0;
 	uint32_t mip_w = texture.width, mip_h = texture.height;
 	for (uint32_t i = 0; i < texture.num_levels; i++) {
@@ -189,7 +181,7 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 	texture.levels[0].staging_buffer = staging;
 	memcpy(staging, image, level0_size);
 
-	if (SOFTWARE_MIPGEN && generate_mips) {
+	if (SOFTWARE_MIPGEN && texture.generate_mips) {
 		uint32_t mip_w = texture.width, mip_h = texture.height;
 		uint32_t mip_offset = mip_w * mip_h * c;
 		for (uint32_t i = 1; i < texture.num_levels; i++) {
@@ -207,7 +199,8 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 			{
 				// If downscale fails, fill level with red so this is visible
 				for (size_t i = 0; i < mip_w * mip_h * c; i++) { staging_buffer[i] = (i % c) ? 0 : 255; }
-				LOG_F(ERROR, "Downscale failed for texture %s level %u (%ux%u)", source_path, i, mip_w, mip_h);
+				LOG_F(ERROR, "Downscale failed for texture %s level %u (%ux%u)", texture.source_path.cstr,
+					i, mip_w, mip_h);
 			}
 		}
 		uint64_t time_mipgen_end = SDL_GetPerformanceCounter();
@@ -221,7 +214,7 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 	float time_upload = float(time_upload_end - timestamp) / ticks_per_msec;
 	timestamp = time_upload_end;
 
-	if (!SOFTWARE_MIPGEN && generate_mips) {
+	if (!SOFTWARE_MIPGEN && texture.generate_mips) {
 		glBindTexture(GL_TEXTURE_2D, texture.gl_texture);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glGenerateMipmap(GL_TEXTURE_2D);
@@ -231,11 +224,23 @@ Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool gen
 		timestamp = time_mipgen_end;
 	}
 
-	LOG_F(INFO, "Texture %s: load %.03fms mipgen %.03f ms upload %.03fms gltex=%u", source_path,
+	LOG_F(INFO, "Texture %s: load %.03fms mipgen %.03f ms upload %.03fms gltex=%u", texture.source_path.cstr,
 		time_disk_load, time_mipgen, time_upload, texture.gl_texture);
 
 	stbi_image_free(image);
 	free(staging);
+}
+
+Texture* GetTexture(uint64_t source_path_hash, const char* source_path, bool generate_mips) {
+	Texture& texture = TextureLoader_Cache[source_path_hash];
+
+	bool uninitialised = (texture.source_path == nullptr);
+	bool needs_reupload = (!uninitialised && (generate_mips && !texture.generate_mips));
+	if (uninitialised || needs_reupload) {
+		texture.source_path = String::copy(source_path);
+		texture.generate_mips = generate_mips;
+		Defer(UploadTexture, &texture);
+	}
 
 	return &texture;
 }

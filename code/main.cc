@@ -11,6 +11,7 @@
 #include "base/string.hh"
 #include "base/filesystem.hh"
 #include "engine/engine.hh"
+#include "engine/deferred.hh"
 #include "graphics/opengl.hh"
 #include "scene/gameobject.hh"
 #include "scene/light.hh"
@@ -123,7 +124,7 @@ static void loop(void) {
 	// Poll and swap times are dependent on the platform and may take abnormally long because of
 	// things outside our control (e.g. window resize or webpage focus loss).
 	if ((engine.last_frame.t_poll - engine.last_frame.t > 100.0f) ||
-		(engine.this_frame.t - engine.last_frame.t_render > 100.0f))
+		(engine.this_frame.t - engine.last_frame.t_defer > 100.0f))
 	{
 		engine.last_frame.ignore_for_timing = true;
 	}
@@ -132,8 +133,10 @@ static void loop(void) {
 		engine.metrics_poll  .push(frame_start_t, engine.last_frame.t_poll   - engine.last_frame.t);
 		engine.metrics_update.push(frame_start_t, engine.last_frame.t_update - engine.last_frame.t_poll);
 		engine.metrics_render.push(frame_start_t, engine.last_frame.t_render - engine.last_frame.t_update);
-		engine.metrics_swap  .push(frame_start_t, engine.this_frame.t - engine.last_frame.t_render);
-		// render_plt is swap+render, update_plt is swap+render+update, poll_plt is the entire frame
+		engine.metrics_defer .push(frame_start_t, engine.last_frame.t_defer  - engine.last_frame.t_render);
+		engine.metrics_swap  .push(frame_start_t, engine.this_frame.t - engine.last_frame.t_defer);
+		// defer_plt is swap+deferred, render_plt is swap+deferred+render, etc.
+		engine.metrics_defer_plt .push(frame_start_t, engine.this_frame.t - engine.last_frame.t_render);
 		engine.metrics_render_plt.push(frame_start_t, engine.this_frame.t - engine.last_frame.t_update);
 		engine.metrics_update_plt.push(frame_start_t, engine.this_frame.t - engine.last_frame.t_poll);
 		engine.metrics_poll_plt  .push(frame_start_t, engine.this_frame.t - engine.last_frame.t);
@@ -169,11 +172,6 @@ static void loop(void) {
 	ImGui_ImplSDL2_NewFrame();
 	ImGui::NewFrame();
 
-	uint32_t asset_loader_ops_left = 1;
-	while (asset_loader_ops_left) {
-		asset_loader_ops_left = ProcessAssetLoadOperation();
-	}
-
 	ProcessShaderUpdates(engine);
 
 	ImGui::PushFont(font_inter_14);
@@ -188,47 +186,42 @@ static void loop(void) {
 			ImPlotFlags_NoFrame | ImPlotFlags_NoChild | ImPlotFlags_NoInputs))
 	{
 		ImPlot::SetupAxes(NULL, NULL, ImPlotAxisFlags_NoTickLabels, ImPlotAxisFlags_NoTickLabels);
-		double time_min = Min<double>(
-			Min(engine.metrics_poll.min_time(), engine.metrics_update.min_time()),
-			Min(engine.metrics_swap.min_time(), engine.metrics_render.min_time()));
-		double time_max = Max<double>(
-			Max(engine.metrics_poll.max_time(), engine.metrics_update.max_time()),
-			Max(engine.metrics_swap.max_time(), engine.metrics_render.max_time()));
+		double time_min = INFINITY, time_max = -INFINITY, val_max = -INFINITY;
+		auto metric_minmax = [](double& time_min, double& time_max, double& val_max, const MetricBuffer& metric) {
+			double tmin = double(metric.min_time()), tmax = double(metric.max_time()), vmax = double(metric.max());
+			if (tmin < time_min) { time_min = tmin; }
+			if (tmax > time_max) { time_max = tmax; }
+			if (vmax > val_max)  { val_max  = vmax; }
+		};
+		metric_minmax(time_min, time_max, val_max, engine.metrics_poll);
+		metric_minmax(time_min, time_max, val_max, engine.metrics_update);
+		metric_minmax(time_min, time_max, val_max, engine.metrics_render);
+		metric_minmax(time_min, time_max, val_max, engine.metrics_defer);
+		metric_minmax(time_min, time_max, val_max, engine.metrics_swap);
 		double min_plot_time = Min(time_min, time_max - float(engine.metrics_poll.frames) * 4.0);
 		ImPlot::SetupAxisLimits(ImAxis_X1, min_plot_time, time_max, ImPlotCond_Always);
 
 		// Default plot Y-axis range suitable for 30FPS frames, with gradual transitions when needed
-		double val_max = Max<double>(
-			Max(engine.metrics_poll.max(), engine.metrics_update.max()),
-			Max(engine.metrics_swap.max(), engine.metrics_render.max()));
 		static double max_plot_val = 33.3333;
 		max_plot_val = (19.0 * max_plot_val + Max(val_max, 33.3333)) / 20.0;
 		ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, max_plot_val, ImPlotCond_Always);
 
-		static char label_poll[64], label_update[64], label_render[64], label_swap[64];
-		stbsp_snprintf(label_poll, sizeof(label_poll), "poll %.03fms max %.03fms",
-			engine.metrics_poll.avg(), engine.metrics_poll.max());
-		stbsp_snprintf(label_update, sizeof(label_update), "update %.03fms max %.03fms",
-			engine.metrics_update.avg(), engine.metrics_update.max());
-		stbsp_snprintf(label_render, sizeof(label_render), "render %.03fms max %.03fms",
-			engine.metrics_render.avg(), engine.metrics_render.max());
-		stbsp_snprintf(label_swap, sizeof(label_swap), "swap %.03fms max %.03fms",
-			engine.metrics_swap.avg(), engine.metrics_swap.max());
-
 		// Plotting from cumulative arrays. Order is important to get the correct overlap.
 		// Have to set colours manually because they're derived from the label by default.
-		ImPlot::SetNextFillStyle(ImVec4(0.32f, 0.8f, 0.96f, 1.0f), 1.0f);
-		ImPlot::PlotShaded<float>(label_poll, engine.metrics_poll_plt.times, engine.metrics_poll_plt.values,
-			engine.metrics_poll_plt.used, -INFINITY, 0, engine.metrics_poll_plt.next);
-		ImPlot::SetNextFillStyle(ImVec4(0.87f, 0.36f, 0.96f, 1.0f), 1.0f);
-		ImPlot::PlotShaded<float>(label_update, engine.metrics_update_plt.times, engine.metrics_update_plt.values,
-			engine.metrics_update_plt.used, -INFINITY, 0, engine.metrics_update_plt.next);
-		ImPlot::SetNextFillStyle(ImVec4(0.65f, 0.96f, 0.38f, 1.0f), 1.0f);
-		ImPlot::PlotShaded<float>(label_render, engine.metrics_render_plt.times, engine.metrics_render_plt.values,
-			engine.metrics_render_plt.used, -INFINITY, 0, engine.metrics_render_plt.next);
-		ImPlot::SetNextFillStyle(ImVec4(0.96f, 0.69f, 0.41f, 1.0f), 1.0f);
-		ImPlot::PlotShaded<float>(label_swap, engine.metrics_swap.times, engine.metrics_swap.values,
-			engine.metrics_swap.used, -INFINITY, 0, engine.metrics_swap.next);
+		auto plot = [](const char* name, const MetricBuffer& region, const MetricBuffer& cumulative, ImVec4 color) {
+			static char label[64];
+			stbsp_snprintf(label, sizeof(label), "%s %.03fms max %.03fms", name, region.avg(), region.max());
+			ImPlot::SetNextFillStyle(color, 1.0f);
+			const float* xs = cumulative.times;
+			const float* ys = cumulative.values;
+			int offset = cumulative.next;
+			ImPlot::PlotShaded<float>(label, xs, ys, cumulative.used, -INFINITY, 0, offset);
+		};
+		plot("poll",   engine.metrics_poll,   engine.metrics_poll_plt,   {0.32f, 0.80f, 0.96f, 1.0f});
+		plot("update", engine.metrics_update, engine.metrics_update_plt, {0.87f, 0.36f, 0.91f, 1.0f});
+		plot("render", engine.metrics_render, engine.metrics_render_plt, {0.65f, 0.96f, 0.38f, 1.0f});
+		plot("defer",  engine.metrics_defer,  engine.metrics_defer_plt,  {0.95f, 0.40f, 0.20f, 1.0f});
+		plot("swap",   engine.metrics_swap,   engine.metrics_swap,       {0.96f, 0.69f, 0.41f, 1.0f});
 		ImPlot::EndPlot();
 	}
 	ImPlot::PopStyleVar();
@@ -299,46 +292,11 @@ static void loop(void) {
 
 	engine.this_frame.t_render = (SDL_GetPerformanceCounter() - engine.initial_t) * msec_per_tick;
 
+	// Run one deferred action.
+	// TODO: Run multiple actions if there's time. The logic for that might be nontrivial.
+	RunDeferredAction(engine);
+
+	engine.this_frame.t_defer = (SDL_GetPerformanceCounter() - engine.initial_t) * msec_per_tick;
+
 	SDL_GL_SwapWindow(window);
-
-#if 1 // FIXME: Debug code, strip out once scene graph can be visualised graphically
-	if (engine.this_frame.n == 10) {
-		LOG_F(INFO, "Scene graph:");
-		char spaces[] = "                                                  ";
-		uint32_t indent = 0;
-		scene->Recurse([&](GameObject& obj) {
-			LOG_F(INFO, "%s* %s", &spaces[sizeof(spaces) - indent - 1], obj.DebugName().cstr);
-			indent++;
-		}, [&](GameObject& obj) { indent--; });
-
-		LOG_F(INFO, "Render lists:");
-		for (RenderListPerView& v : render_list.views) {
-			LOG_F(INFO, "* Camera <%p> pos=[%.02f %.02f %.02f]", v.camera,
-				v.camera->world_position.x, v.camera->world_position.y, v.camera->world_position.z);
-			for (auto& [k, m] : v.meshes) {
-				LOG_F(INFO, "  * Mesh <%p> instances=[%u:%u] (%u)", m.mesh, m.first_instance,
-					m.first_instance + m.instance_count - 1, m.instance_count);
-				for (uint32_t i = m.first_instance; i < m.first_instance + m.instance_count; i++) {
-					RenderableMeshInstanceData& rmid = v.mesh_instances[i];
-					vec3 position, scale, skew; quat rotation; vec4 perspective;
-					glm::decompose(rmid.local_to_world, scale, rotation, position, skew, perspective);
-					LOG_F(INFO, "    * Instance %u pos=[%.02f %.02f %.02f]", i, position.x, position.y, position.z);
-				}
-			}
-		}
-		for (RenderableDirectionalLight& r : render_list.directional_lights) {
-			LOG_F(INFO, "* DirectionalLight pos=[%.02f %.02f %.02f] color=[%.02f %.02f %.02f]",
-				r.position.x, r.position.y, r.position.z,
-				r.color.x, r.color.y, r.color.z);
-		}
-		for (RenderablePointLight& r : render_list.point_lights) {
-			LOG_F(INFO, "* PointLight pos=[%.02f %.02f %.02f] color=[%.02f %.02f %.02f]",
-				r.position.x, r.position.y, r.position.z,
-				r.color.x, r.color.y, r.color.z);
-		}
-		for (RenderableAmbientCube& r : render_list.ambient_cubes) {
-			LOG_F(INFO, "* AmbientCube pos=[%.02f %.02f %.02f]", r.position.x, r.position.y, r.position.z);
-		}
-	}
-#endif
 }

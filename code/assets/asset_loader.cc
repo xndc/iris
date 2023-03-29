@@ -65,7 +65,3 @@ void InitAssetLoader() {
 	InitShaderLoader();
 	InitModelLoader();
 }
-
-uint32_t ProcessAssetLoadOperation() {
-	return 0;
-}

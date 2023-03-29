@@ -28,7 +28,7 @@ struct MetricBuffer {
 		}
 	}
 
-	float avg() {
+	float avg() const {
 		float accum = 0.0f;
 		for (uint32_t i = 0; i < used; i++) {
 			accum += values[i];
@@ -36,7 +36,7 @@ struct MetricBuffer {
 		return accum / float(used);
 	}
 
-	float max() {
+	float max() const {
 		float maxval = 0.0f; // NOTE: all datapoints should be positive
 		for (uint32_t i = 0; i < used; i++) {
 			if (values[i] > maxval) {
@@ -46,7 +46,7 @@ struct MetricBuffer {
 		return maxval;
 	}
 
-	float min_time() {
+	float min_time() const {
 		float mintime = FLT_MAX;
 		for (uint32_t i = 0; i < used; i++) {
 			if (times[i] < mintime) {
@@ -56,7 +56,7 @@ struct MetricBuffer {
 		return mintime;
 	}
 
-	float max_time() {
+	float max_time() const {
 		float maxtime = FLT_MIN;
 		for (uint32_t i = 0; i < used; i++) {
 			if (times[i] > maxtime) {

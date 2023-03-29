@@ -36,6 +36,7 @@ add_executable(Main
 	"code/base/debug.cc"
 	"code/base/string.cc"
 	"code/base/filesystem.cc"
+	"code/engine/deferred.cc"
 	"code/graphics/opengl.cc"
 	"code/graphics/render.cc"
 	"code/graphics/renderlist.cc"

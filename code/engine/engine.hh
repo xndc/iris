@@ -41,6 +41,7 @@ struct FrameState {
 	float t_poll;   // after operating system is polled for events
 	float t_update; // after asset loading ops are processed and GameObjects are updated
 	float t_render; // after drawcalls are submitted to GPU
+	float t_defer;  // after processing deferred actions
 
 	uint32_t total_drawcalls = 0;
 	uint32_t total_polys_rendered = 0;
@@ -64,11 +65,13 @@ struct Engine {
 	MetricBuffer metrics_poll   = MetricBuffer(360);
 	MetricBuffer metrics_update = MetricBuffer(360);
 	MetricBuffer metrics_render = MetricBuffer(360);
+	MetricBuffer metrics_defer  = MetricBuffer(360);
 	MetricBuffer metrics_swap   = MetricBuffer(360);
 	// Metric buffers containing cumulative times, for plotting.
 	MetricBuffer metrics_poll_plt   = MetricBuffer(360);
 	MetricBuffer metrics_update_plt = MetricBuffer(360);
 	MetricBuffer metrics_render_plt = MetricBuffer(360);
+	MetricBuffer metrics_defer_plt  = MetricBuffer(360);
 
 	uint32_t display_w = 1280;
 	uint32_t display_h = 720;
