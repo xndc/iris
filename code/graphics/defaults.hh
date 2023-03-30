@@ -34,6 +34,7 @@ namespace DefaultUniforms {
 	};
 
 	// Global parameters
+	static constexpr Item Time = {"Time"};
 	static constexpr Item FramebufferSize = {"FramebufferSize"};
 
 	// Render targets from previous passes
@@ -64,8 +65,13 @@ namespace DefaultUniforms {
 	static constexpr Item StippleHardCutoff = {"StippleHardCutoff"};
 	static constexpr Item StippleSoftCutoff = {"StippleSoftCutoff"};
 
-	// Shadow sampler
+	// Shadow sampler and parameters
 	static constexpr Item ShadowMap = {"ShadowMap"};
+	static constexpr Item ShadowWorldToClip = {"ShadowWorldToClip"};
+	static constexpr Item ShadowBiasMin = {"ShadowBiasMin"};
+	static constexpr Item ShadowBiasMax = {"ShadowBiasMax"};
+	static constexpr Item ShadowPCFTapsX = {"ShadowPCFTapsX"};
+	static constexpr Item ShadowPCFTapsY = {"ShadowPCFTapsY"};
 
 	// Camera parameters
 	static constexpr Item CameraPosition = {"CameraPosition"};

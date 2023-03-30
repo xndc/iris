@@ -7,7 +7,8 @@ struct DirectionalLight : OrthographicCamera {
 	virtual constexpr size_t Size() const override { return sizeof(*this); }
 
 	// FIXME: No idea why these values work, look into it and tune them
-	DirectionalLight(): OrthographicCamera{100.0f, -1000.0f, 500.0f} {}
+	// Negative near plane is probably because we use a reverse Z setup for the shadowmap
+	DirectionalLight(): OrthographicCamera{-1000.0f, 500.0f, 50.0f} {}
 
 	uint32_t shadowmap_size = 4096;
 	float shadow_bias_min = 0.0002f;
@@ -16,6 +17,9 @@ struct DirectionalLight : OrthographicCamera {
 	uint8_t shadow_pcf_taps_y = 2;
 
 	vec3 color;
+
+	virtual bool UpdateInput(Engine& engine) override;
+	virtual void LateUpdate(Engine& engine) override;
 };
 
 struct PointLight : GameObject {

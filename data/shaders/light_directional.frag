@@ -3,20 +3,27 @@ precision highp float;
 
 in vec2 FragCoord01;
 
+uniform float Time;
 uniform vec2 FramebufferSize;
 uniform sampler2D RTAlbedo;
 uniform sampler2D RTNormal;
 uniform sampler2D RTMaterial;
 uniform sampler2D RTVelocity;
+uniform sampler2D ShadowMap;
 uniform sampler2D RTDepth;
 uniform vec3 CameraPosition;
 uniform vec3 LightPosition;
 uniform vec3 LightColor;
+uniform float ShadowBiasMin;
+uniform float ShadowBiasMax;
+uniform int ShadowPCFTapsX;
+uniform int ShadowPCFTapsY;
 
 uniform mat4 LocalToWorld;
 uniform mat4 LocalToClip;
 uniform mat4 LastLocalToClip;
 uniform mat4 ClipToWorld;
+uniform mat4 ShadowWorldToClip;
 
 layout(location = 0) out vec4 OutColorHDR;
 
@@ -142,6 +149,40 @@ void main() {
 	vec3 L = LightPosition; // already normalised for directional lights
 
 	vec3 Lo = UE_CookTorrance_BRDF(N, V, L, LightColor, albedo, metalness, roughness);
+
+	vec4 unprojected_shadow_pos = ShadowWorldToClip * unprojected_pos;
+	vec3 shadow_pos = unprojected_shadow_pos.xyz / unprojected_shadow_pos.w;
+	vec2 shadow_texcoord = shadow_pos.xy * 0.5 + 0.5;
+	const float shadow_penumbra_size = 1.0;
+	vec2 shadow_texel_size = (1.0 / vec2(textureSize(ShadowMap, 0))) * shadow_penumbra_size;
+	float shadow_bias = max(ShadowBiasMax * (1.0 - dot(N, L)), ShadowBiasMin);
+
+	float shadow = 0.0;
+	if (shadow_texcoord.x >= 0.0 && shadow_texcoord.y >= 0.0 &&
+		shadow_texcoord.x <= 1.0 && shadow_texcoord.y <= 1.0)
+	{
+		for (int ix = 0; ix < ShadowPCFTapsX; ix++) {
+		for (int iy = 0; iy < ShadowPCFTapsY; iy++) {
+			// PCF + random noise offset:
+			vec2 offset = vec2((ix - (ShadowPCFTapsX / 2)), (iy - (ShadowPCFTapsY / 2)));
+			offset *= shadow_penumbra_size;
+			// FIXME: This can probably be simplified. It could also do with a toggle.
+			offset.x += WhiteNoise(100.0 * world_pos.xy + mod(Time * 1.0, 100.0)) * 2.0 - 1.0;
+			offset.y += WhiteNoise(100.0 * world_pos.xy + mod(Time * 2.0, 100.0)) * 2.0 - 1.0;
+			float shadow_z = texture(ShadowMap, shadow_texcoord + offset * shadow_texel_size).r;
+			#ifdef DEPTH_HALF_TO_ONE
+				shadow_z = (shadow_z - 0.5) * 2.0;
+			#endif
+			if (shadow_z > shadow_pos.z + shadow_bias) {
+				shadow += 1.0;
+			}
+		}}
+	}
+	shadow /= float(ShadowPCFTapsX * ShadowPCFTapsY);
+
+	// FIXME: Ad-hoc ambient value should be replaced with something better
+	shadow = min(shadow, 0.6);
+	Lo = mix(vec3(0.0), Lo, 1.0 - shadow);
 
 	OutColorHDR = vec4(Lo, 1.0);
 }

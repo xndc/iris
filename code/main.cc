@@ -103,7 +103,7 @@ SDLMAIN_DECLSPEC int main(int argc, char* argv[]) {
 	scene->AddCopy(sponza->root_object);
 
 	DirectionalLight* dl = scene->Add(new DirectionalLight());
-	dl->position = vec3(1, 1, 1);
+	dl->position = vec3(0.1, 1.0, 0.1);
 	dl->color = vec3(10, 10, 10);
 
 	#if defined(EMSCRIPTEN)
@@ -274,15 +274,54 @@ static void loop(void) {
 		Render(engine, render_list, engine.cam_main, program, nullptr, gbuffer, {});
 	});
 
-	RenderPass("Directional Light Accumulation", [&]() {
-		for (RenderableDirectionalLight& light : render_list.directional_lights) {
+	for (RenderableDirectionalLight& light : render_list.directional_lights) {
+		UpdateShadowRenderTargets(*light.object);
+
+		Framebuffer* shadowmap = GetFramebuffer({&DefaultRenderTargets::ShadowMap});
+		Framebuffer* gbuffer_plus_shadowmap = GetFramebuffer({
+			&DefaultRenderTargets::Albedo,
+			&DefaultRenderTargets::Normal,
+			&DefaultRenderTargets::Material,
+			&DefaultRenderTargets::ShadowMap,
+			&DefaultRenderTargets::Depth,
+		});
+		String pass_name_shadowmap = String::format("%s Shadow Map", light.object->Name().cstr);
+		String pass_name_accumulation = String::format("%s Accumulation", light.object->Name().cstr);
+
+		static Material* shadow_material = nullptr;
+		if (ExpectFalse(!shadow_material)) {
+			shadow_material = new Material();
+			shadow_material->face_culling_mode = GL_FRONT; // render only backfaces
+			shadow_material->depth_test_func = GL_GREATER;
+			shadow_material->blend_mode = BlendMode::Stippled;
+		}
+
+		RenderPass(pass_name_shadowmap.cstr, [&]() {
+			BindFramebuffer(shadowmap);
+			glViewport(0, 0, light.object->shadowmap_size, light.object->shadowmap_size);
+			glClearDepth(0.0f); // reverse Z
+			glClear(GL_DEPTH_BUFFER_BIT);
+			VertShader* vsh = GetVertShader("data/shaders/core_transform_min.vert");
+			FragShader* fsh = GetFragShader("data/shaders/shadowmap.frag");
+			Program* program = GetProgram(vsh, fsh);
+			Render(engine, render_list, light.object, program, nullptr, shadowmap, {}, shadow_material,
+				RenderFlags::UseOriginalAlbedo | RenderFlags::UseOriginalStippleParams);
+			glViewport(0, 0, engine.display_w, engine.display_h);
+		});
+
+		RenderPass(pass_name_accumulation.cstr, [&]() {
 			FragShader* fsh = GetFragShader("data/shaders/light_directional.frag");
-			RenderEffect(engine, fsh, gbuffer, nullptr, {
+			RenderEffect(engine, fsh, gbuffer_plus_shadowmap, nullptr, {
 				UniformValue(DefaultUniforms::LightPosition, light.position),
 				UniformValue(DefaultUniforms::LightColor, light.color),
+				UniformValue(DefaultUniforms::ShadowWorldToClip, light.object->this_frame.vp),
+				UniformValue(DefaultUniforms::ShadowBiasMin, light.object->shadow_bias_min),
+				UniformValue(DefaultUniforms::ShadowBiasMax, light.object->shadow_bias_max),
+				UniformValue(DefaultUniforms::ShadowPCFTapsX, int32_t(light.object->shadow_pcf_taps_x)),
+				UniformValue(DefaultUniforms::ShadowPCFTapsY, int32_t(light.object->shadow_pcf_taps_y)),
 			});
-		}
-	});
+		});
+	}
 
 	RenderPass("Editor UI", [&]() {
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);

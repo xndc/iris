@@ -10,6 +10,7 @@
 struct Engine;
 struct GameObject;
 struct Camera;
+struct DirectionalLight;
 struct Mesh;
 struct Material;
 
@@ -39,6 +40,7 @@ struct RenderableMeshInstanceData {
 };
 
 struct RenderableDirectionalLight {
+	DirectionalLight* object;
 	vec3 position; // normalised
 	vec3 color;
 };

@@ -112,6 +112,7 @@ static uint32_t SetCoreUniforms(const Engine& engine, Program* program, Framebuf
 	uint32_t next_texture_unit = 0;
 
 	program->set({DefaultUniforms::FramebufferSize, vec2(engine.display_w, engine.display_h)});
+	program->set({DefaultUniforms::Time, engine.this_frame.t});
 
 	if (input) {
 		for (RenderTarget* rt : input->attachments) {

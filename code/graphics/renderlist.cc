@@ -112,6 +112,7 @@ void RenderList::UpdateFromScene(const Engine& engine, GameObject* scene, Camera
 	scene->Recurse([&](GameObject& obj) {
 		if (DirectionalLight* light = dynamic_cast<DirectionalLight*>(&obj)) {
 			RenderableDirectionalLight& r = directional_lights.emplace_back();
+			r.object = light;
 			r.color = light->color;
 			// FIXME: We probably want this to come from the light's rotation, like every other
 			// engine does, rather than its position. But this is a bit simpler to implement.

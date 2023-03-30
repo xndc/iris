@@ -76,7 +76,7 @@ struct Camera : GameObject {
 
 	// Updates the camera's Input struct. Should be run after updating world transforms. Doesn't
 	// modify last_input. Returns true if the newly computed input has changed from last_input.
-	bool UpdateInput(Engine& engine);
+	virtual bool UpdateInput(Engine& engine);
 
 	virtual void LateUpdate(Engine& engine) override;
 };

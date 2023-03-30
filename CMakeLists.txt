@@ -47,6 +47,7 @@ add_executable(Main
 	"code/assets/shader.cc"
 	"code/scene/gameobject.cc"
 	"code/scene/camera.cc"
+	"code/scene/light.cc"
 	"code/editor/editor_camera.cc"
 )
 target_include_directories(Main PRIVATE "code")
