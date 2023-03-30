@@ -127,8 +127,9 @@ static uint32_t SetCoreUniforms(const Engine& engine, Program* program, Framebuf
 	return next_texture_unit;
 }
 
-void Render(Engine& engine, RenderList& rlist, Camera* camera, Program* program,
-	Framebuffer* input, Framebuffer* output, std::initializer_list<UniformValue> uniforms)
+void Render(Engine& engine, RenderList& rlist, Camera* camera, Program* program, Framebuffer* input,
+	Framebuffer* output, std::initializer_list<UniformValue> uniforms, Material* override_material,
+	RenderFlags::Flag flags)
 {
 	BindFramebuffer(output);
 	glUseProgram(program->gl_program);
@@ -146,14 +147,17 @@ void Render(Engine& engine, RenderList& rlist, Camera* camera, Program* program,
 	const RenderListPerView& viewlist = *viewlist_iter;
 
 	Material* last_material = nullptr;
+	uint32_t next_texture_unit = 0;
 	uint32_t num_drawcalls = 0, num_polys_rendered = 0;
 
 	for (const auto& [key, rmesh] : viewlist.meshes) {
 		Mesh& mesh = *rmesh.mesh;
-		Material& mat = *rmesh.material;
 
-		if (&mat != last_material) {
-			uint32_t next_texture_unit = first_texture_unit;
+		// Set material parameters, either from the MeshInstance's material or from the override
+		// material. Render flags might require that some parameters remain unset here.
+		if (override_material ? (num_drawcalls == 0) : (rmesh.material != last_material)) {
+			Material& mat = override_material ? *override_material : *rmesh.material;
+			next_texture_unit = first_texture_unit;
 
 			if (mat.face_culling_mode != GL_NONE) {
 				glEnable(GL_CULL_FACE);
@@ -176,11 +180,20 @@ void Render(Engine& engine, RenderList& rlist, Camera* camera, Program* program,
 					mat.blend_srcf_alpha, mat.blend_dstf_alpha);
 				glBlendEquationSeparate(mat.blend_op_color, mat.blend_op_alpha);
 			} else {
-				// TODO: Add uniforms for stipple cutoffs
 				glDisable(GL_BLEND);
+				if (mat.blend_mode == BlendMode::Stippled) {
+					program->set({DefaultUniforms::StippleHardCutoff, mat.stipple_hard_cutoff});
+					program->set({DefaultUniforms::StippleSoftCutoff, mat.stipple_soft_cutoff});
+				} else {
+					program->set({DefaultUniforms::StippleHardCutoff, 1.0f});
+					program->set({DefaultUniforms::StippleSoftCutoff, 1.0f});
+				}
 			}
 
 			for (uint32_t i = 0; i < mat.num_samplers; i++) {
+				// Don't waste a texture unit on the albedo sampler if we're going to overwrite it
+				bool is_albedo = mat.samplers[i].uniform.hash == DefaultUniforms::TexAlbedo.hash;
+				if (is_albedo && (flags & RenderFlags::UseOriginalAlbedo)) { continue; }
 				glActiveTexture(GL_TEXTURE0 + next_texture_unit);
 				glBindTexture(GL_TEXTURE_2D, mat.samplers[i].texture->gl_texture);
 				glBindSampler(next_texture_unit, mat.samplers[i].sampler->gl_sampler);
@@ -188,10 +201,45 @@ void Render(Engine& engine, RenderList& rlist, Camera* camera, Program* program,
 				next_texture_unit++;
 			}
 
-			for (uint32_t i = 0; i < mat.num_uniforms; i++) { program->set(mat.uniforms[i]); }
-
-			last_material = &mat;
+			for (uint32_t i = 0; i < mat.num_uniforms; i++) {
+				program->set(mat.uniforms[i]);
+			}
 		}
+
+		// Override the override material with the instance material if requested via flags. Needed
+		// for shadow passes. Yes, I know, but I can't think of better options.
+		if (override_material && rmesh.material != last_material) {
+			Material& mat = *rmesh.material;
+
+			if (mat.blend_mode == BlendMode::Stippled && (flags & RenderFlags::UseOriginalStippleParams)) {
+				program->set({DefaultUniforms::StippleHardCutoff, mat.stipple_hard_cutoff});
+				program->set({DefaultUniforms::StippleSoftCutoff, mat.stipple_soft_cutoff});
+			}
+
+			if (flags & RenderFlags::UseOriginalAlbedo) {
+				for (uint32_t i = 0; i < mat.num_samplers; i++) {
+					bool is_albedo = mat.samplers[i].uniform.hash == DefaultUniforms::TexAlbedo.hash;
+					if (is_albedo) {
+						glActiveTexture(GL_TEXTURE0 + next_texture_unit);
+						glBindTexture(GL_TEXTURE_2D, mat.samplers[i].texture->gl_texture);
+						glBindSampler(next_texture_unit, mat.samplers[i].sampler->gl_sampler);
+						program->set({mat.samplers[i].uniform, int32_t(next_texture_unit)});
+						next_texture_unit++;
+					}
+				}
+			}
+
+			if (flags & RenderFlags::UseOriginalAlbedo) {
+				for (uint32_t i = 0; i < mat.num_uniforms; i++) {
+					bool is_albedo = mat.uniforms[i].uniform.hash == DefaultUniforms::ConstAlbedo.hash;
+					if (is_albedo) {
+						program->set(mat.uniforms[i]);
+					}
+				}
+			}
+		}
+
+		last_material = rmesh.material;
 
 		glBindVertexArray(mesh.gl_vertex_array);
 

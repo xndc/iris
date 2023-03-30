@@ -11,6 +11,8 @@ uniform sampler2D TexOccRghMet;
 uniform vec4 ConstAlbedo;
 uniform float ConstMetallic;
 uniform float ConstRoughness;
+uniform float StippleHardCutoff;
+uniform float StippleSoftCutoff;
 
 layout(location = 0) out vec3 OutAlbedo;
 layout(location = 1) out vec2 OutNormal;
@@ -23,6 +25,20 @@ vec4 SRGBToLinear(vec4 srgb) {
 	vec4 higher = pow((srgb + vec4(0.055)) / vec4(1.055), vec4(2.4));
 	vec4 lower = srgb / vec4(12.92);
 	return mix(higher, lower, cutoff);
+}
+
+float Dither2x2(vec2 position, float brightness) {
+	int x = int(mod(position.x, 2.0));
+	int y = int(mod(position.y, 2.0));
+	int index = x + y * 2;
+	float limit = 0.0;
+	if (x < 8) {
+		if (index == 0) limit = 0.25;
+		if (index == 1) limit = 0.75;
+		if (index == 2) limit = 1.00;
+		if (index == 3) limit = 0.50;
+	}
+	return brightness < limit ? 0.0 : 1.0;
 }
 
 // Fast octahedral encoding method from Cigolle, Donow and Evangelakos, "A Survey of Efficient
@@ -39,8 +55,20 @@ vec2 OctahedronNormalEncode(vec3 normal) {
 
 void main() {
 	// NOTE: GLSL spec says all albedo values are stored as sRGB
-	vec3 albedo = ConstAlbedo.rgb * SRGBToLinear(texture(TexAlbedo, VTexcoord0)).rgb;
-	OutAlbedo = albedo;
+	vec4 albedo = ConstAlbedo * SRGBToLinear(texture(TexAlbedo, VTexcoord0));
+
+	float alpha = albedo.a;
+	if (alpha < StippleHardCutoff) {
+		discard;
+	}
+	if (alpha < StippleSoftCutoff) {
+		alpha = (alpha - StippleHardCutoff) / (StippleSoftCutoff - StippleHardCutoff);
+		if (Dither2x2(gl_FragCoord.xy, alpha) < 0.5) {
+			discard;
+		}
+	}
+
+	OutAlbedo = albedo.rgb;
 
 	vec3 tex_normal = texture(TexNormal, VTexcoord0).rgb;
 	// If the model doesn't specify a normal map, we'll bind a 1x1 white texture to TexNormal. We

@@ -58,9 +58,11 @@ namespace DefaultUniforms {
 	static constexpr Item TexOccRghMet = {"TexOccRghMet"};
 
 	// Material constant factors
-	static constexpr Item ConstAlbedo    = {"ConstAlbedo"};
-	static constexpr Item ConstMetallic  = {"ConstMetallic"};
-	static constexpr Item ConstRoughness = {"ConstRoughness"};
+	static constexpr Item ConstAlbedo       = {"ConstAlbedo"};
+	static constexpr Item ConstMetallic     = {"ConstMetallic"};
+	static constexpr Item ConstRoughness    = {"ConstRoughness"};
+	static constexpr Item StippleHardCutoff = {"StippleHardCutoff"};
+	static constexpr Item StippleSoftCutoff = {"StippleSoftCutoff"};
 
 	// Shadow sampler
 	static constexpr Item ShadowMap = {"ShadowMap"};
