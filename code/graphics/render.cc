@@ -5,14 +5,15 @@
 
 // NOTE: Must use formats that are colour-renderable on WebGL2 / GLES 3.0
 namespace DefaultRenderTargets {
-	RenderTarget Albedo     = RenderTarget(ImageFormat::RGB8, &DefaultUniforms::RTAlbedo);
-	RenderTarget Normal     = RenderTarget(ImageFormat::RGB8, &DefaultUniforms::RTNormal);
-	RenderTarget Material   = RenderTarget(ImageFormat::RGB8, &DefaultUniforms::RTMaterial);
-	RenderTarget Velocity   = RenderTarget(ImageFormat::RG8, &DefaultUniforms::RTVelocity);
+	RenderTarget Albedo     = RenderTarget(ImageFormat::RGB8,    &DefaultUniforms::RTAlbedo);
+	// World-space normal vectors encoded with octahedral encoding, see gbuffer.frag
+	RenderTarget Normal     = RenderTarget(ImageFormat::RG8,     &DefaultUniforms::RTNormal);
+	RenderTarget Material   = RenderTarget(ImageFormat::RGB8,    &DefaultUniforms::RTMaterial);
+	RenderTarget Velocity   = RenderTarget(ImageFormat::RG8,     &DefaultUniforms::RTVelocity);
 	RenderTarget ColorHDR   = RenderTarget(ImageFormat::RGB10A2, &DefaultUniforms::RTColorHDR);
-	RenderTarget PersistTAA = RenderTarget(ImageFormat::RGB10A2, &DefaultUniforms::RTColorHDR);
-	RenderTarget Depth      = RenderTarget(ImageFormat::D32, &DefaultUniforms::RTDepth);
-	RenderTarget ShadowMap  = RenderTarget(ImageFormat::D32, &DefaultUniforms::ShadowMap);
+	RenderTarget PersistTAA = RenderTarget(ImageFormat::RGB10A2, &DefaultUniforms::RTPersistTAA);
+	RenderTarget Depth      = RenderTarget(ImageFormat::D32,     &DefaultUniforms::RTDepth);
+	RenderTarget ShadowMap  = RenderTarget(ImageFormat::D32,     &DefaultUniforms::ShadowMap);
 };
 
 struct FramebufferKey {

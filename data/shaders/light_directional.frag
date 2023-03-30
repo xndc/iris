@@ -107,6 +107,17 @@ vec3 UE_CookTorrance_BRDF(vec3 N, vec3 V, vec3 L, vec3 light_color, vec3 albedo,
 	return brdf * light_color * NdotL;
 }
 
+// Octahedral unit vector decoding algorithm by Rune Stubbe
+// https://twitter.com/Stubbesaurus/status/937994790553227264
+vec3 OctahedronNormalDecode(vec2 encoded) {
+	vec2 f = encoded * 2.0 - 1.0;
+	vec3 n = vec3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
+	float t = clamp(-n.z, 0.0, 1.0);
+	n.x += (n.x >= 0.0) ? -t : t;
+	n.y += (n.y >= 0.0) ? -t : t;
+	return normalize(n);
+}
+
 void main() {
 	ivec2 fragcoord = ivec2(gl_FragCoord.xy);
 	vec3 albedo   = texelFetch(RTAlbedo,   fragcoord, 0).rgb;
@@ -126,7 +137,7 @@ void main() {
 	vec4 unprojected_pos = ClipToWorld * clip_pos;
 	vec3 world_pos = unprojected_pos.xyz / unprojected_pos.w;
 
-	vec3 N = texelFetch(RTNormal, fragcoord, 0).rgb;
+	vec3 N = OctahedronNormalDecode(texelFetch(RTNormal, fragcoord, 0).rg);
 	vec3 V = normalize(CameraPosition - world_pos);
 	vec3 L = LightPosition; // already normalised for directional lights
 
