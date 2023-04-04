@@ -180,9 +180,10 @@ void main() {
 	}
 	shadow /= float(ShadowPCFTapsX * ShadowPCFTapsY);
 
-	// FIXME: Ad-hoc ambient value should be replaced with something better
-	shadow = min(shadow, 0.6);
 	Lo = mix(vec3(0.0), Lo, 1.0 - shadow);
+
+	// FIXME: Ad-hoc ambient value should be replaced with something better
+	Lo = max(Lo, albedo * mix(0.07, 0.11, dot(N, vec3(0.0, 1.0, 0.0))));
 
 	OutColorHDR = vec4(Lo, 1.0);
 }

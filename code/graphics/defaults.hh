@@ -80,6 +80,9 @@ namespace DefaultUniforms {
 	static constexpr Item LightPosition = {"LightPosition"};
 	static constexpr Item LightColor = {"LightColor"};
 
+	// Tonemap & PostFX parameters
+	static constexpr Item TonemapExposure = {"TonemapExposure"};
+
 	static constexpr Item all[] = {
 		RTAlbedo, RTNormal, RTMaterial, RTVelocity, RTColorHDR, RTDepth,
 		FramebufferSize,

@@ -79,7 +79,7 @@ struct Engine {
 	Camera* cam_main = nullptr;
 
 	VSync vsync = VSync::ADAPTIVE;
-	Tonemapper tonemapper = Tonemapper(Tonemapper::HABLE, 16.0f);
+	Tonemapper tonemapper = Tonemapper(Tonemapper::ACES, 16.0f);
 
 	// Multiplier for TAA sampling jitter offsets. Original offsets are between [-1,1].
 	// Higher multipliers increase both blur and visible jitter on specular surfaces.

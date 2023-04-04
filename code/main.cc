@@ -104,7 +104,7 @@ SDLMAIN_DECLSPEC int main(int argc, char* argv[]) {
 
 	DirectionalLight* dl = scene->Add(new DirectionalLight());
 	dl->position = vec3(0.1, 1.0, 0.1);
-	dl->color = vec3(10, 10, 10);
+	dl->color = vec3(2.0, 2.0, 2.0);
 
 	#if defined(EMSCRIPTEN)
 		emscripten_set_main_loop(loop, 0, true);
@@ -239,6 +239,15 @@ static void loop(void) {
 	ImGui::End();
 	ImGui::PopFont();
 
+	ImGui::Begin("Tonemapper");
+	int* p_tonemapper_type = reinterpret_cast<int*>(&engine.tonemapper.type);
+	ImGui::RadioButton("Linear",   p_tonemapper_type, Tonemapper::LINEAR);
+	ImGui::RadioButton("Reinhard", p_tonemapper_type, Tonemapper::REINHARD);
+	ImGui::RadioButton("Hable",    p_tonemapper_type, Tonemapper::HABLE);
+	ImGui::RadioButton("ACES",     p_tonemapper_type, Tonemapper::ACES);
+	ImGui::SliderFloat("Exposure", &engine.tonemapper.exposure, 0.0f, 30.0f);
+	ImGui::End();
+
 	scene->RecursiveUpdate(engine);
 	scene->RecursiveUpdateTransforms();
 	scene->RecursiveLateUpdate(engine);
@@ -262,9 +271,19 @@ static void loop(void) {
 
 	RenderPass("GBuffer Clear", [&]() {
 		BindFramebuffer(gbuffer);
-		glClearColor(0.3f, 0.4f, 0.55f, 1.0f);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClearDepth(0.0f); // reverse Z
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	});
+
+	Framebuffer* fb_color_hdr = GetFramebuffer({
+		&DefaultRenderTargets::ColorHDR,
+	});
+
+	RenderPass("HDR Clear", [&]() {
+		BindFramebuffer(fb_color_hdr);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
 	});
 
 	RenderPass("GBuffer", [&]() {
@@ -285,8 +304,6 @@ static void loop(void) {
 			&DefaultRenderTargets::ShadowMap,
 			&DefaultRenderTargets::Depth,
 		});
-		String pass_name_shadowmap = String::format("%s Shadow Map", light.object->Name().cstr);
-		String pass_name_accumulation = String::format("%s Accumulation", light.object->Name().cstr);
 
 		static Material* shadow_material = nullptr;
 		if (ExpectFalse(!shadow_material)) {
@@ -296,6 +313,7 @@ static void loop(void) {
 			shadow_material->blend_mode = BlendMode::Stippled;
 		}
 
+		String pass_name_shadowmap = String::format("%s Shadow Map", light.object->Name().cstr);
 		RenderPass(pass_name_shadowmap.cstr, [&]() {
 			BindFramebuffer(shadowmap);
 			glViewport(0, 0, light.object->shadowmap_size, light.object->shadowmap_size);
@@ -309,9 +327,10 @@ static void loop(void) {
 			glViewport(0, 0, engine.display_w, engine.display_h);
 		});
 
+		String pass_name_accumulation = String::format("%s Accumulation", light.object->Name().cstr);
 		RenderPass(pass_name_accumulation.cstr, [&]() {
 			FragShader* fsh = GetFragShader("data/shaders/light_directional.frag");
-			RenderEffect(engine, fsh, gbuffer_plus_shadowmap, nullptr, {
+			RenderEffect(engine, fsh, gbuffer_plus_shadowmap, fb_color_hdr, {
 				UniformValue(DefaultUniforms::LightPosition, light.position),
 				UniformValue(DefaultUniforms::LightColor, light.color),
 				UniformValue(DefaultUniforms::ShadowWorldToClip, light.object->this_frame.vp),
@@ -319,9 +338,16 @@ static void loop(void) {
 				UniformValue(DefaultUniforms::ShadowBiasMax, light.object->shadow_bias_max),
 				UniformValue(DefaultUniforms::ShadowPCFTapsX, int32_t(light.object->shadow_pcf_taps_x)),
 				UniformValue(DefaultUniforms::ShadowPCFTapsY, int32_t(light.object->shadow_pcf_taps_y)),
-			});
+			}, RenderEffectFlags::BlendAdditive);
 		});
 	}
+
+	RenderPass("Tonemap & PostFX", [&]() {
+		FragShader* fsh = GetFragShader("data/shaders/tonemap_postfx.frag");
+		RenderEffect(engine, fsh, fb_color_hdr, nullptr, {
+			UniformValue(DefaultUniforms::TonemapExposure, engine.tonemapper.exposure),
+		});
+	});
 
 	RenderPass("Editor UI", [&]() {
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
