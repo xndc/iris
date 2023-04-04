@@ -196,7 +196,7 @@ FragShader* GetFragShader(const char* path) {
 
 Program* GetProgram(VertShader* vsh, FragShader* fsh) {
 	uint64_t key[2] = {uint64_t(vsh), uint64_t(fsh)};
-	uint64_t hash = Hash64(reinterpret_cast<char*>(key));
+	uint64_t hash = Hash64(reinterpret_cast<char*>(key), sizeof(key));
 	Program& program = ProgramCache[hash];
 
 	if (program.gl_program != 0) {
