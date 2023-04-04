@@ -281,7 +281,7 @@ void Render(Engine& engine, RenderList& rlist, Camera* camera, Program* program,
 }
 
 void RenderEffect(Engine& engine, FragShader* fsh, Framebuffer* input, Framebuffer* output,
-	std::initializer_list<UniformValue> uniforms)
+	std::initializer_list<UniformValue> uniforms, RenderEffectFlags::Flag flags)
 {
 	BindFramebuffer(output);
 
@@ -298,7 +298,14 @@ void RenderEffect(Engine& engine, FragShader* fsh, Framebuffer* input, Framebuff
 
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_BLEND);
+
+	if (flags & RenderEffectFlags::BlendAdditive) {
+		glEnable(GL_BLEND);
+		glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ONE, GL_ONE);
+		glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
+	} else {
+		glDisable(GL_BLEND);
+	}
 
 	glBindVertexArray(DefaultMeshes::QuadXZ.gl_vertex_array);
 	glDrawElements(DefaultMeshes::QuadXZ.ptype.gl_enum(), DefaultMeshes::QuadXZ.index_buffer.total_components(),

@@ -55,8 +55,13 @@ void Render(Engine& engine, RenderList& rlist, Camera* camera, Program* program,
 	Framebuffer* output, std::initializer_list<UniformValue> uniforms, Material* override_material = nullptr,
 	RenderFlags::Flag flags = 0);
 
+namespace RenderEffectFlags {
+	typedef uint32_t Flag;
+	static constexpr Flag BlendAdditive = (1 << 0);
+};
+
 void RenderEffect(Engine& engine, FragShader* fsh, Framebuffer* input, Framebuffer* output,
-	std::initializer_list<UniformValue> uniforms);
+	std::initializer_list<UniformValue> uniforms, RenderEffectFlags::Flag flags = 0);
 
 void* StartRenderPass(const char* name);
 void EndRenderPass(void* render_pass_handle);
