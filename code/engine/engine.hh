@@ -113,7 +113,7 @@ struct Engine {
 	// Enable the Temporal Anti-Aliasing filter. Smooths the image at the cost of some blur.
 	bool taa_enabled : 1 = true;
 	// If enabled, use a Halton pattern for the jitter. If disabled, use a simple 2-sample pattern.
-	bool taa_halton_jitter = true;
+	bool taa_halton_jitter : 1 = true;
 
 	bool debugvis_light_gizmos : 1 = false;
 	bool debugvis_light_volumes : 1 = false;
