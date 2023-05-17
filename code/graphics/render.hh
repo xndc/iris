@@ -14,13 +14,13 @@ struct DirectionalLight;
 
 struct RenderTarget {
 	const ImageFormat format;
-	const DefaultUniforms::Item* uniform;
+	const Uniforms::Item* uniform;
 	GLuint gl_texture;
-	RenderTarget(ImageFormat format, const DefaultUniforms::Item* uniform):
+	RenderTarget(ImageFormat format, const Uniforms::Item* uniform):
 		format{format}, uniform{uniform}, gl_texture{0} {}
 };
 
-namespace DefaultRenderTargets {
+namespace RenderTargets {
 	extern RenderTarget Albedo;
 	extern RenderTarget Normal;
 	extern RenderTarget Material;

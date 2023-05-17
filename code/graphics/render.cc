@@ -4,16 +4,16 @@
 #include <unordered_map>
 
 // NOTE: Must use formats that are colour-renderable on WebGL2 / GLES 3.0
-namespace DefaultRenderTargets {
-	RenderTarget Albedo     = RenderTarget(ImageFormat::RGB8,    &DefaultUniforms::RTAlbedo);
+namespace RenderTargets {
+	RenderTarget Albedo     = RenderTarget(ImageFormat::RGB8,    &Uniforms::RTAlbedo);
 	// World-space normal vectors encoded with octahedral encoding, see gbuffer.frag
-	RenderTarget Normal     = RenderTarget(ImageFormat::RG8,     &DefaultUniforms::RTNormal);
-	RenderTarget Material   = RenderTarget(ImageFormat::RGB8,    &DefaultUniforms::RTMaterial);
-	RenderTarget Velocity   = RenderTarget(ImageFormat::RG8,     &DefaultUniforms::RTVelocity);
-	RenderTarget ColorHDR   = RenderTarget(ImageFormat::RGB10A2, &DefaultUniforms::RTColorHDR);
-	RenderTarget PersistTAA = RenderTarget(ImageFormat::RGB10A2, &DefaultUniforms::RTPersistTAA);
-	RenderTarget Depth      = RenderTarget(ImageFormat::D32,     &DefaultUniforms::RTDepth);
-	RenderTarget ShadowMap  = RenderTarget(ImageFormat::D32,     &DefaultUniforms::ShadowMap);
+	RenderTarget Normal     = RenderTarget(ImageFormat::RG8,     &Uniforms::RTNormal);
+	RenderTarget Material   = RenderTarget(ImageFormat::RGB8,    &Uniforms::RTMaterial);
+	RenderTarget Velocity   = RenderTarget(ImageFormat::RG8,     &Uniforms::RTVelocity);
+	RenderTarget ColorHDR   = RenderTarget(ImageFormat::RGB10A2, &Uniforms::RTColorHDR);
+	RenderTarget PersistTAA = RenderTarget(ImageFormat::RGB10A2, &Uniforms::RTPersistTAA);
+	RenderTarget Depth      = RenderTarget(ImageFormat::D32,     &Uniforms::RTDepth);
+	RenderTarget ShadowMap  = RenderTarget(ImageFormat::D32,     &Uniforms::ShadowMap);
 };
 
 struct FramebufferKey {
@@ -51,13 +51,13 @@ void UpdateRenderTargets(const Engine& engine) {
 	if (engine.display_w != last_w || engine.display_h != last_h) {
 		last_w = engine.display_w;
 		last_h = engine.display_h;
-		RebuildRenderTarget(DefaultRenderTargets::Albedo,     engine.display_w, engine.display_h);
-		RebuildRenderTarget(DefaultRenderTargets::Normal,     engine.display_w, engine.display_h);
-		RebuildRenderTarget(DefaultRenderTargets::Material,   engine.display_w, engine.display_h);
-		RebuildRenderTarget(DefaultRenderTargets::Velocity,   engine.display_w, engine.display_h);
-		RebuildRenderTarget(DefaultRenderTargets::ColorHDR,   engine.display_w, engine.display_h);
-		RebuildRenderTarget(DefaultRenderTargets::PersistTAA, engine.display_w, engine.display_h);
-		RebuildRenderTarget(DefaultRenderTargets::Depth,      engine.display_w, engine.display_h);
+		RebuildRenderTarget(RenderTargets::Albedo,     engine.display_w, engine.display_h);
+		RebuildRenderTarget(RenderTargets::Normal,     engine.display_w, engine.display_h);
+		RebuildRenderTarget(RenderTargets::Material,   engine.display_w, engine.display_h);
+		RebuildRenderTarget(RenderTargets::Velocity,   engine.display_w, engine.display_h);
+		RebuildRenderTarget(RenderTargets::ColorHDR,   engine.display_w, engine.display_h);
+		RebuildRenderTarget(RenderTargets::PersistTAA, engine.display_w, engine.display_h);
+		RebuildRenderTarget(RenderTargets::Depth,      engine.display_w, engine.display_h);
 		ClearFramebufferCache();
 	}
 }
@@ -66,7 +66,7 @@ void UpdateShadowRenderTargets(const DirectionalLight& light) {
 	static uint32_t last_shadowmap_size = 0;
 	if (light.shadowmap_size != last_shadowmap_size) {
 		last_shadowmap_size = light.shadowmap_size;
-		RebuildRenderTarget(DefaultRenderTargets::ShadowMap, light.shadowmap_size, light.shadowmap_size);
+		RebuildRenderTarget(RenderTargets::ShadowMap, light.shadowmap_size, light.shadowmap_size);
 		ClearFramebufferCache();
 	}
 }
@@ -111,15 +111,15 @@ void BindFramebuffer(Framebuffer* framebuffer) {
 static uint32_t SetCoreUniforms(const Engine& engine, Program* program, Framebuffer* input) {
 	uint32_t next_texture_unit = 0;
 
-	program->set({DefaultUniforms::FramebufferSize, vec2(engine.display_w, engine.display_h)});
-	program->set({DefaultUniforms::Time, engine.this_frame.t});
+	program->set({Uniforms::FramebufferSize, vec2(engine.display_w, engine.display_h)});
+	program->set({Uniforms::Time, engine.this_frame.t});
 
 	if (input) {
 		for (RenderTarget* rt : input->attachments) {
 			if (!rt) { continue; }
 			glActiveTexture(GL_TEXTURE0 + next_texture_unit);
 			glBindTexture(GL_TEXTURE_2D, rt->gl_texture);
-			glBindSampler(next_texture_unit, DefaultSamplers::NearestRepeat.gl_sampler);
+			glBindSampler(next_texture_unit, Samplers::NearestRepeat.gl_sampler);
 			program->set({*(rt->uniform), int32_t(next_texture_unit)});
 			next_texture_unit++;
 		}
@@ -138,8 +138,8 @@ void Render(Engine& engine, RenderList& rlist, Camera* camera, Program* program,
 	uint32_t first_texture_unit = SetCoreUniforms(engine, program, input);
 	for (UniformValue u : uniforms) { program->set(u); }
 
-	program->set({DefaultUniforms::CameraPosition, camera->world_position});
-	program->set({DefaultUniforms::ClipToWorld, camera->this_frame.inv_vp});
+	program->set({Uniforms::CameraPosition, camera->world_position});
+	program->set({Uniforms::ClipToWorld, camera->this_frame.inv_vp});
 
 	// Find per-view render list for this camera
 	auto viewlist_iter = std::find_if(rlist.views.cbegin(), rlist.views.cend(),
@@ -183,17 +183,17 @@ void Render(Engine& engine, RenderList& rlist, Camera* camera, Program* program,
 			} else {
 				glDisable(GL_BLEND);
 				if (mat.blend_mode == BlendMode::Stippled) {
-					program->set({DefaultUniforms::StippleHardCutoff, mat.stipple_hard_cutoff});
-					program->set({DefaultUniforms::StippleSoftCutoff, mat.stipple_soft_cutoff});
+					program->set({Uniforms::StippleHardCutoff, mat.stipple_hard_cutoff});
+					program->set({Uniforms::StippleSoftCutoff, mat.stipple_soft_cutoff});
 				} else {
-					program->set({DefaultUniforms::StippleHardCutoff, 1.0f});
-					program->set({DefaultUniforms::StippleSoftCutoff, 1.0f});
+					program->set({Uniforms::StippleHardCutoff, 1.0f});
+					program->set({Uniforms::StippleSoftCutoff, 1.0f});
 				}
 			}
 
 			for (uint32_t i = 0; i < mat.num_samplers; i++) {
 				// Don't waste a texture unit on the albedo sampler if we're going to overwrite it
-				bool is_albedo = mat.samplers[i].uniform.hash == DefaultUniforms::TexAlbedo.hash;
+				bool is_albedo = mat.samplers[i].uniform.hash == Uniforms::TexAlbedo.hash;
 				if (is_albedo && (flags & RenderFlags::UseOriginalAlbedo)) { continue; }
 				glActiveTexture(GL_TEXTURE0 + next_texture_unit);
 				glBindTexture(GL_TEXTURE_2D, mat.samplers[i].texture->gl_texture);
@@ -213,13 +213,13 @@ void Render(Engine& engine, RenderList& rlist, Camera* camera, Program* program,
 			Material& mat = *rmesh.material;
 
 			if (mat.blend_mode == BlendMode::Stippled && (flags & RenderFlags::UseOriginalStippleParams)) {
-				program->set({DefaultUniforms::StippleHardCutoff, mat.stipple_hard_cutoff});
-				program->set({DefaultUniforms::StippleSoftCutoff, mat.stipple_soft_cutoff});
+				program->set({Uniforms::StippleHardCutoff, mat.stipple_hard_cutoff});
+				program->set({Uniforms::StippleSoftCutoff, mat.stipple_soft_cutoff});
 			}
 
 			if (flags & RenderFlags::UseOriginalAlbedo) {
 				for (uint32_t i = 0; i < mat.num_samplers; i++) {
-					bool is_albedo = mat.samplers[i].uniform.hash == DefaultUniforms::TexAlbedo.hash;
+					bool is_albedo = mat.samplers[i].uniform.hash == Uniforms::TexAlbedo.hash;
 					if (is_albedo) {
 						glActiveTexture(GL_TEXTURE0 + next_texture_unit);
 						glBindTexture(GL_TEXTURE_2D, mat.samplers[i].texture->gl_texture);
@@ -232,7 +232,7 @@ void Render(Engine& engine, RenderList& rlist, Camera* camera, Program* program,
 
 			if (flags & RenderFlags::UseOriginalAlbedo) {
 				for (uint32_t i = 0; i < mat.num_uniforms; i++) {
-					bool is_albedo = mat.uniforms[i].uniform.hash == DefaultUniforms::ConstAlbedo.hash;
+					bool is_albedo = mat.uniforms[i].uniform.hash == Uniforms::ConstAlbedo.hash;
 					if (is_albedo) {
 						program->set(mat.uniforms[i]);
 					}
@@ -253,11 +253,11 @@ void Render(Engine& engine, RenderList& rlist, Camera* camera, Program* program,
 		for (uint32_t i = rmesh.first_instance; i < rmesh.first_instance + rmesh.instance_count; i++) {
 			const RenderableMeshInstanceData& rmid = viewlist.mesh_instances[i];
 
-			glUniformMatrix4fv(program->location(DefaultUniforms::LocalToWorld),
+			glUniformMatrix4fv(program->location(Uniforms::LocalToWorld),
 				1, false, reinterpret_cast<const float*>(&rmid.local_to_world));
-			glUniformMatrix4fv(program->location(DefaultUniforms::LocalToClip),
+			glUniformMatrix4fv(program->location(Uniforms::LocalToClip),
 				1, false, reinterpret_cast<const float*>(&rmid.local_to_clip));
-			glUniformMatrix4fv(program->location(DefaultUniforms::LastLocalToClip),
+			glUniformMatrix4fv(program->location(Uniforms::LastLocalToClip),
 				1, false, reinterpret_cast<const float*>(&rmid.last_local_to_clip));
 
 			glDrawElements(mesh.ptype.gl_enum(), mesh.index_buffer.total_components(),
@@ -293,8 +293,8 @@ void RenderEffect(Engine& engine, FragShader* fsh, Framebuffer* input, Framebuff
 	for (UniformValue u : uniforms) { program->set(u); }
 
 	// TODO: Will we ever want to use RenderEffect for something other than the main camera?
-	program->set({DefaultUniforms::CameraPosition, engine.cam_main->world_position});
-	program->set({DefaultUniforms::ClipToWorld, engine.cam_main->this_frame.inv_vp});
+	program->set({Uniforms::CameraPosition, engine.cam_main->world_position});
+	program->set({Uniforms::ClipToWorld, engine.cam_main->this_frame.inv_vp});
 
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);
@@ -307,9 +307,9 @@ void RenderEffect(Engine& engine, FragShader* fsh, Framebuffer* input, Framebuff
 		glDisable(GL_BLEND);
 	}
 
-	glBindVertexArray(DefaultMeshes::QuadXZ.gl_vertex_array);
-	glDrawElements(DefaultMeshes::QuadXZ.ptype.gl_enum(), DefaultMeshes::QuadXZ.index_buffer.total_components(),
-		DefaultMeshes::QuadXZ.index_buffer.ctype.gl_enum(), nullptr);
+	glBindVertexArray(Meshes::QuadXZ.gl_vertex_array);
+	glDrawElements(Meshes::QuadXZ.ptype.gl_enum(), Meshes::QuadXZ.index_buffer.total_components(),
+		Meshes::QuadXZ.index_buffer.ctype.gl_enum(), nullptr);
 }
 
 void* StartRenderPass(const char* name) {

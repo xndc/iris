@@ -73,14 +73,14 @@ struct UniformValue {
 			glm::mat4      f32;
 		} mat4x4;
 	};
-	DefaultUniforms::Item uniform = DefaultUniforms::all[0];
+	Uniforms::Item uniform = Uniforms::all[0];
 	ElementType etype;
 	ComponentType ctype;
 
 	UniformValue() = default;
 
 	#define CONSTRUCTOR(etype_name, ctype_name, short_etype, short_ctype, type) \
-		UniformValue(DefaultUniforms::Item uniform, type short_etype##_##short_ctype): \
+		UniformValue(Uniforms::Item uniform, type short_etype##_##short_ctype): \
 			uniform{uniform}, etype{etype_name}, ctype{ctype_name} \
 			{ short_etype.short_ctype = short_etype##_##short_ctype; }
 
@@ -126,8 +126,8 @@ struct Program {
 	Program(VertShader* vsh, FragShader* fsh): vsh{vsh}, fsh{fsh} {}
 	void invalidate();
 
-	GLint uniform_locations [CountOf(DefaultUniforms::all)];
-	GLint location(const DefaultUniforms::Item& uniform);
+	GLint uniform_locations [CountOf(Uniforms::all)];
+	GLint location(const Uniforms::Item& uniform);
 	bool set(const UniformValue& u);
 };
 

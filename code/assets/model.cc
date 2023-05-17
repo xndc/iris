@@ -231,7 +231,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 
 		// Base material textures:
 		SamplerBinding& smp_normal = m.samplers[m.num_samplers++];
-		smp_normal.uniform = DefaultUniforms::TexNormal;
+		smp_normal.uniform = Uniforms::TexNormal;
 		JSON_Object* jnormaltex = json_object_get_object(jmat, "normalTexture");
 		if (jnormaltex) {
 			int itex = (int) json_object_get_number(jnormaltex, "index");
@@ -243,12 +243,12 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 					smp_normal.texture->gl_texture);
 			}
 		} else {
-			smp_normal.texture = &DefaultTextures::White_1x1;
-			smp_normal.sampler = &DefaultSamplers::NearestRepeat;
+			smp_normal.texture = &Textures::White_1x1;
+			smp_normal.sampler = &Samplers::NearestRepeat;
 		}
 
 		SamplerBinding& smp_occlusion = m.samplers[m.num_samplers++];
-		smp_occlusion.uniform = DefaultUniforms::TexOcclusion;
+		smp_occlusion.uniform = Uniforms::TexOcclusion;
 		JSON_Object* jocctex = json_object_get_object(jmat, "occlusionTexture");
 		if (jocctex) {
 			int itex = (int) json_object_get_number(jocctex, "index");
@@ -260,8 +260,8 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 					smp_occlusion.texture->gl_texture);
 			}
 		} else {
-			smp_occlusion.texture = &DefaultTextures::Black_1x1;
-			smp_occlusion.sampler = &DefaultSamplers::NearestRepeat;
+			smp_occlusion.texture = &Textures::Black_1x1;
+			smp_occlusion.sampler = &Samplers::NearestRepeat;
 		}
 
 		// PBR metallic-roughness material properties:
@@ -270,7 +270,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 			UniformValue& const_albedo = m.uniforms[m.num_uniforms++];
 			JSON_Array* jbaseColorFactor = json_object_get_array(jmr, "baseColorFactor");
 			if (jbaseColorFactor) {
-				const_albedo = UniformValue(DefaultUniforms::ConstAlbedo, vec4(
+				const_albedo = UniformValue(Uniforms::ConstAlbedo, vec4(
 					float(json_array_get_number(jbaseColorFactor, 0)),
 					float(json_array_get_number(jbaseColorFactor, 1)),
 					float(json_array_get_number(jbaseColorFactor, 2)),
@@ -279,31 +279,31 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 					const_albedo.vec4.f32.r, const_albedo.vec4.f32.g,
 					const_albedo.vec4.f32.b, const_albedo.vec4.f32.a);
 			} else {
-				const_albedo = UniformValue(DefaultUniforms::ConstAlbedo, vec4(1.0f));
+				const_albedo = UniformValue(Uniforms::ConstAlbedo, vec4(1.0f));
 			}
 
 			UniformValue& const_metallic = m.uniforms[m.num_uniforms++];
 			if (json_object_has_value(jmr, "metallicFactor")) {
-				const_metallic = UniformValue(DefaultUniforms::ConstMetallic,
+				const_metallic = UniformValue(Uniforms::ConstMetallic,
 					float(json_object_get_number(jmr, "metallicFactor")));
 				LOG_F(INFO, "-> material=%u -> %s scalar.f32 %.02f", imat, const_metallic.uniform.name,
 					const_metallic.scalar.f32);
 			} else {
-				const_metallic = UniformValue(DefaultUniforms::ConstMetallic, 1.0f);
+				const_metallic = UniformValue(Uniforms::ConstMetallic, 1.0f);
 			}
 
 			UniformValue& const_roughness = m.uniforms[m.num_uniforms++];
 			if (json_object_has_value(jmr, "roughnessFactor")) {
-				const_roughness = UniformValue(DefaultUniforms::ConstRoughness,
+				const_roughness = UniformValue(Uniforms::ConstRoughness,
 					float(json_object_get_number(jmr, "roughnessFactor")));
 				LOG_F(INFO, "-> material=%u -> %s scalar.f32 %.02f", imat, const_roughness.uniform.name,
 					const_roughness.scalar.f32);
 			} else {
-				const_roughness = UniformValue(DefaultUniforms::ConstRoughness, 1.0f);
+				const_roughness = UniformValue(Uniforms::ConstRoughness, 1.0f);
 			}
 
 			SamplerBinding& smp_albedo = m.samplers[m.num_samplers++];
-			smp_albedo.uniform = DefaultUniforms::TexAlbedo;
+			smp_albedo.uniform = Uniforms::TexAlbedo;
 			JSON_Object* jbaseColorTexture = json_object_get_object(jmr, "baseColorTexture");
 			if (jbaseColorTexture) {
 				int itex = (int) json_object_get_number(jbaseColorTexture, "index");
@@ -315,12 +315,12 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 						smp_albedo.texture->gl_texture);
 				}
 			} else {
-				smp_albedo.texture = &DefaultTextures::White_1x1;
-				smp_albedo.sampler = &DefaultSamplers::NearestRepeat;
+				smp_albedo.texture = &Textures::White_1x1;
+				smp_albedo.sampler = &Samplers::NearestRepeat;
 			}
 
 			SamplerBinding& smp_occ_rgh_met = m.samplers[m.num_samplers++];
-			smp_occ_rgh_met.uniform = DefaultUniforms::TexOccRghMet;
+			smp_occ_rgh_met.uniform = Uniforms::TexOccRghMet;
 			JSON_Object* jmetallicRoughnessTexture = json_object_get_object(jmr, "metallicRoughnessTexture");
 			if (jmetallicRoughnessTexture) {
 				int itex = (int) json_object_get_number(jmetallicRoughnessTexture, "index");
@@ -332,8 +332,8 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 						smp_occ_rgh_met.texture->gl_texture);
 				}
 			} else {
-				smp_occ_rgh_met.texture = &DefaultTextures::White_1x1;
-				smp_occ_rgh_met.sampler = &DefaultSamplers::NearestRepeat;
+				smp_occ_rgh_met.texture = &Textures::White_1x1;
+				smp_occ_rgh_met.sampler = &Samplers::NearestRepeat;
 			}
 		}
 	}
@@ -433,7 +433,7 @@ Model* GetModelFromGLTF(uint64_t source_path_hash, const char* source_path) {
 				debug_str = String::format("INDEX(acc=%u)", ibv);
 			}
 
-			for (DefaultAttributes::Item attr : DefaultAttributes::all) {
+			for (Attributes::Item attr : Attributes::all) {
 				if (!json_object_has_value(jattr, attr.gltf_name)) { continue; }
 				uint32_t ibv = uint32_t(json_object_get_number(jattr, attr.gltf_name));
 				mesh.vertex_attribs[attr.index] = *buffer_views[ibv];

@@ -244,11 +244,11 @@ Program* GetProgram(VertShader* vsh, FragShader* fsh) {
 
 	GLObjectLabel(GL_PROGRAM, gl_program, name.cstr);
 
-	for (uint32_t i = 0; i < CountOf(DefaultUniforms::all); i++) {
-		program.uniform_locations[i] = glGetUniformLocation(gl_program, DefaultUniforms::all[i].name);
+	for (uint32_t i = 0; i < CountOf(Uniforms::all); i++) {
+		program.uniform_locations[i] = glGetUniformLocation(gl_program, Uniforms::all[i].name);
 	}
 
-	for (const DefaultAttributes::Item& attrib : DefaultAttributes::all) {
+	for (const Attributes::Item& attrib : Attributes::all) {
 		glBindAttribLocation(gl_program, attrib.index, attrib.name);
 	}
 
@@ -304,9 +304,9 @@ void Program::invalidate() {
 	gl_program = 0;
 }
 
-GLint Program::location(const DefaultUniforms::Item& uniform) {
-	for (uint32_t i = 0; i < CountOf(DefaultUniforms::all); i++) {
-		if (DefaultUniforms::all[i].hash == uniform.hash) {
+GLint Program::location(const Uniforms::Item& uniform) {
+	for (uint32_t i = 0; i < CountOf(Uniforms::all); i++) {
+		if (Uniforms::all[i].hash == uniform.hash) {
 			return uniform_locations[i];
 		}
 	}

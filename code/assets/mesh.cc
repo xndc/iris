@@ -30,7 +30,7 @@ Buffer* Buffer::upload() {
 }
 
 bool Mesh::compute_aabb() {
-	BufferView& position = vertex_attribs[DefaultAttributes::Position.index];
+	BufferView& position = vertex_attribs[Attributes::Position.index];
 	if (!position.buffer) {
 		return false;
 	}
@@ -67,7 +67,7 @@ Mesh* Mesh::upload() {
 			Buffer& buffer = *bufview.buffer;
 			buffer.upload();
 			glBindBuffer(buffer.usage.gl_target(), buffer.gpu_handle);
-			GLuint location = DefaultAttributes::all[iattr].index;
+			GLuint location = Attributes::all[iattr].index;
 			glEnableVertexAttribArray(location);
 			glVertexAttribPointer(location, bufview.etype.components(), bufview.ctype.gl_enum(), false,
 				bufview.stride(), reinterpret_cast<const GLvoid*>(bufview.offset));
@@ -77,14 +77,14 @@ Mesh* Mesh::upload() {
 	return this;
 }
 
-namespace DefaultMeshes {
+namespace Meshes {
 	Mesh QuadXZ;
 	Mesh Cube;
 }
 
-void CreateDefaultMeshes() {
+void CreateMeshes() {
 	/* QuadXZ */ {
-		Mesh& mesh = DefaultMeshes::QuadXZ;
+		Mesh& mesh = Meshes::QuadXZ;
 		const float positions[] = {
 			-1.0f, 0.0f, -1.0f,
 			-1.0f, 0.0f,  1.0f,
@@ -96,7 +96,7 @@ void CreateDefaultMeshes() {
 			1, 2, 3,
 		};
 		mesh.ptype = PrimitiveType::TRIANGLES;
-		mesh.vertex_attribs[DefaultAttributes::Position.index] = BufferView(
+		mesh.vertex_attribs[Attributes::Position.index] = BufferView(
 			new Buffer(BufferUsage::Vertex, sizeof(positions), &positions),
 			ElementType::VEC3, ComponentType::F32, CountOf(positions) / 3);
 		mesh.index_buffer = BufferView(
@@ -107,7 +107,7 @@ void CreateDefaultMeshes() {
 	}
 
 	/* Cube */ {
-		Mesh& mesh = DefaultMeshes::Cube;
+		Mesh& mesh = Meshes::Cube;
 		const float positions[] = {
 			// Front
 			-0.5, -0.5,  0.5,
@@ -167,10 +167,10 @@ void CreateDefaultMeshes() {
 			22, 23, 20,
 		};
 		mesh.ptype = PrimitiveType::TRIANGLES;
-		mesh.vertex_attribs[DefaultAttributes::Position.index] = BufferView(
+		mesh.vertex_attribs[Attributes::Position.index] = BufferView(
 			new Buffer(BufferUsage::Vertex, sizeof(positions), &positions),
 			ElementType::VEC3, ComponentType::F32, CountOf(positions) / 3);
-		mesh.vertex_attribs[DefaultAttributes::Texcoord0.index] = BufferView(
+		mesh.vertex_attribs[Attributes::Texcoord0.index] = BufferView(
 			new Buffer(BufferUsage::Vertex, sizeof(texcoords), &texcoords),
 			ElementType::VEC2, ComponentType::F32, CountOf(texcoords) / 2);
 		mesh.index_buffer = BufferView(

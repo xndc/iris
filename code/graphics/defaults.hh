@@ -3,7 +3,7 @@
 #include "base/hash.hh"
 #include "graphics/opengl.hh"
 
-namespace DefaultAttributes {
+namespace Attributes {
 	struct Item {
 		GLuint index;
 		const char* name;
@@ -26,7 +26,7 @@ namespace DefaultAttributes {
 	};
 }
 
-namespace DefaultUniforms {
+namespace Uniforms {
 	struct Item {
 		uint64_t hash;
 		const char* name;

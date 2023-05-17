@@ -43,7 +43,7 @@ struct Texture {
 	}
 };
 
-namespace DefaultTextures {
+namespace Textures {
 	extern Texture White_1x1;
 	extern Texture Black_1x1;
 	extern Texture Red_1x1;
@@ -71,7 +71,7 @@ struct Sampler {
 	GLuint gl_sampler = 0;
 };
 
-namespace DefaultSamplers {
+namespace Samplers {
 	extern Sampler NearestRepeat;
 	extern Sampler LinearRepeat;
 	extern Sampler MipmappedNearestRepeat;

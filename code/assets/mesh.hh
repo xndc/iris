@@ -236,7 +236,7 @@ struct BufferView {
 struct Mesh {
 	PrimitiveType ptype;
 
-	static constexpr size_t MaxVertexAttribs = CountOf(DefaultAttributes::all);
+	static constexpr size_t MaxVertexAttribs = CountOf(Attributes::all);
 	// One BufferView, which may be pointing to a valid or null buffer, for each vertex attribute.
 	BufferView vertex_attribs [MaxVertexAttribs];
 
@@ -255,9 +255,9 @@ struct Mesh {
 	Mesh* upload();
 };
 
-namespace DefaultMeshes {
+namespace Meshes {
 	extern Mesh QuadXZ;
 	extern Mesh Cube;
 }
 
-void CreateDefaultMeshes();
+void CreateMeshes();

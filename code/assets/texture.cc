@@ -12,13 +12,13 @@
 
 static bool TextureLoader_Initialised = false;
 
-namespace DefaultTextures {
+namespace Textures {
 	Texture White_1x1 = {};
 	Texture Black_1x1 = {};
 	Texture Red_1x1 = {};
 }
 
-namespace DefaultSamplers {
+namespace Samplers {
 	Sampler NearestRepeat = {};
 	Sampler LinearRepeat = {};
 	Sampler MipmappedNearestRepeat = {};
@@ -78,44 +78,44 @@ void InitTextureLoader() {
 	if (TextureLoader_Initialised) { return; }
 
 	GLubyte staging_white_1x1[] = {255, 255, 255, 255};
-	DefaultTextures::White_1x1.width  = 1;
-	DefaultTextures::White_1x1.height = 1;
-	DefaultTextures::White_1x1.channels = 4;
-	DefaultTextures::White_1x1.num_levels = 1;
-	DefaultTextures::White_1x1.levels[0] = {.width = 1, .height = 1, .staging_buffer = staging_white_1x1};
-	UploadStagedLevels(DefaultTextures::White_1x1);
+	Textures::White_1x1.width  = 1;
+	Textures::White_1x1.height = 1;
+	Textures::White_1x1.channels = 4;
+	Textures::White_1x1.num_levels = 1;
+	Textures::White_1x1.levels[0] = {.width = 1, .height = 1, .staging_buffer = staging_white_1x1};
+	UploadStagedLevels(Textures::White_1x1);
 
 	GLubyte staging_black_1x1[] = {0, 0, 0, 0};
-	DefaultTextures::Black_1x1.width  = 1;
-	DefaultTextures::Black_1x1.height = 1;
-	DefaultTextures::Black_1x1.channels = 4;
-	DefaultTextures::Black_1x1.num_levels = 1;
-	DefaultTextures::Black_1x1.levels[0] = {.width = 1, .height = 1, .staging_buffer = staging_black_1x1};
-	UploadStagedLevels(DefaultTextures::Black_1x1);
+	Textures::Black_1x1.width  = 1;
+	Textures::Black_1x1.height = 1;
+	Textures::Black_1x1.channels = 4;
+	Textures::Black_1x1.num_levels = 1;
+	Textures::Black_1x1.levels[0] = {.width = 1, .height = 1, .staging_buffer = staging_black_1x1};
+	UploadStagedLevels(Textures::Black_1x1);
 
 	GLubyte staging_red_1x1[] = {255, 0, 0, 0};
-	DefaultTextures::Red_1x1.width  = 1;
-	DefaultTextures::Red_1x1.height = 1;
-	DefaultTextures::Red_1x1.channels = 4;
-	DefaultTextures::Red_1x1.num_levels = 1;
-	DefaultTextures::Red_1x1.levels[0] = {.width = 1, .height = 1, .staging_buffer = staging_red_1x1};
-	UploadStagedLevels(DefaultTextures::Red_1x1);
+	Textures::Red_1x1.width  = 1;
+	Textures::Red_1x1.height = 1;
+	Textures::Red_1x1.channels = 4;
+	Textures::Red_1x1.num_levels = 1;
+	Textures::Red_1x1.levels[0] = {.width = 1, .height = 1, .staging_buffer = staging_red_1x1};
+	UploadStagedLevels(Textures::Red_1x1);
 
-	DefaultSamplers::NearestRepeat.params.min_filter = GL_NEAREST;
-	DefaultSamplers::NearestRepeat.params.mag_filter = GL_NEAREST;
-	UploadSampler(DefaultSamplers::NearestRepeat);
+	Samplers::NearestRepeat.params.min_filter = GL_NEAREST;
+	Samplers::NearestRepeat.params.mag_filter = GL_NEAREST;
+	UploadSampler(Samplers::NearestRepeat);
 
-	DefaultSamplers::LinearRepeat.params.min_filter = GL_LINEAR;
-	DefaultSamplers::LinearRepeat.params.mag_filter = GL_LINEAR;
-	UploadSampler(DefaultSamplers::LinearRepeat);
+	Samplers::LinearRepeat.params.min_filter = GL_LINEAR;
+	Samplers::LinearRepeat.params.mag_filter = GL_LINEAR;
+	UploadSampler(Samplers::LinearRepeat);
 
-	DefaultSamplers::MipmappedNearestRepeat.params.min_filter = GL_NEAREST_MIPMAP_NEAREST;
-	DefaultSamplers::MipmappedNearestRepeat.params.mag_filter = GL_NEAREST;
-	UploadSampler(DefaultSamplers::MipmappedNearestRepeat);
+	Samplers::MipmappedNearestRepeat.params.min_filter = GL_NEAREST_MIPMAP_NEAREST;
+	Samplers::MipmappedNearestRepeat.params.mag_filter = GL_NEAREST;
+	UploadSampler(Samplers::MipmappedNearestRepeat);
 
-	DefaultSamplers::MipmappedLinearRepeat.params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
-	DefaultSamplers::MipmappedLinearRepeat.params.mag_filter = GL_LINEAR;
-	UploadSampler(DefaultSamplers::MipmappedLinearRepeat);
+	Samplers::MipmappedLinearRepeat.params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+	Samplers::MipmappedLinearRepeat.params.mag_filter = GL_LINEAR;
+	UploadSampler(Samplers::MipmappedLinearRepeat);
 
 	const uint32_t max_expected_textures = 256, max_expected_samplers = 32;
 	TextureLoader_Cache.reserve(max_expected_textures);
@@ -148,7 +148,7 @@ static void UploadTexture(Engine& engine, void* pv_texture) {
 		texture.height = 1;
 		texture.channels = 4;
 		texture.num_levels = 1;
-		texture.gl_texture = DefaultTextures::Red_1x1.gl_texture;
+		texture.gl_texture = Textures::Red_1x1.gl_texture;
 		return;
 	}
 	texture.width  = texture.levels[0].width  = static_cast<uint32_t>(w);

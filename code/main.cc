@@ -53,7 +53,7 @@ SDLMAIN_DECLSPEC int main(int argc, char* argv[]) {
 	gl_context = GLCreateContext(window);
 	GLMakeContextCurrent(window, gl_context);
 
-	CreateDefaultMeshes();
+	CreateMeshes();
 	InitAssetLoader();
 	ProcessShaderUpdates(engine);
 
@@ -262,11 +262,11 @@ static void loop(void) {
 	glViewport(0, 0, engine.display_w, engine.display_h);
 
 	Framebuffer* gbuffer = GetFramebuffer({
-		&DefaultRenderTargets::Albedo,
-		&DefaultRenderTargets::Normal,
-		&DefaultRenderTargets::Material,
-		&DefaultRenderTargets::Velocity,
-		&DefaultRenderTargets::Depth,
+		&RenderTargets::Albedo,
+		&RenderTargets::Normal,
+		&RenderTargets::Material,
+		&RenderTargets::Velocity,
+		&RenderTargets::Depth,
 	});
 
 	RenderPass("GBuffer Clear", [&]() {
@@ -277,7 +277,7 @@ static void loop(void) {
 	});
 
 	Framebuffer* fb_color_hdr = GetFramebuffer({
-		&DefaultRenderTargets::ColorHDR,
+		&RenderTargets::ColorHDR,
 	});
 
 	RenderPass("HDR Clear", [&]() {
@@ -296,13 +296,13 @@ static void loop(void) {
 	for (RenderableDirectionalLight& light : render_list.directional_lights) {
 		UpdateShadowRenderTargets(*light.object);
 
-		Framebuffer* shadowmap = GetFramebuffer({&DefaultRenderTargets::ShadowMap});
+		Framebuffer* shadowmap = GetFramebuffer({&RenderTargets::ShadowMap});
 		Framebuffer* gbuffer_plus_shadowmap = GetFramebuffer({
-			&DefaultRenderTargets::Albedo,
-			&DefaultRenderTargets::Normal,
-			&DefaultRenderTargets::Material,
-			&DefaultRenderTargets::ShadowMap,
-			&DefaultRenderTargets::Depth,
+			&RenderTargets::Albedo,
+			&RenderTargets::Normal,
+			&RenderTargets::Material,
+			&RenderTargets::ShadowMap,
+			&RenderTargets::Depth,
 		});
 
 		static Material* shadow_material = nullptr;
@@ -331,13 +331,13 @@ static void loop(void) {
 		RenderPass(pass_name_accumulation.cstr, [&]() {
 			FragShader* fsh = GetFragShader("data/shaders/light_directional.frag");
 			RenderEffect(engine, fsh, gbuffer_plus_shadowmap, fb_color_hdr, {
-				UniformValue(DefaultUniforms::LightPosition, light.position),
-				UniformValue(DefaultUniforms::LightColor, light.color),
-				UniformValue(DefaultUniforms::ShadowWorldToClip, light.object->this_frame.vp),
-				UniformValue(DefaultUniforms::ShadowBiasMin, light.object->shadow_bias_min),
-				UniformValue(DefaultUniforms::ShadowBiasMax, light.object->shadow_bias_max),
-				UniformValue(DefaultUniforms::ShadowPCFTapsX, int32_t(light.object->shadow_pcf_taps_x)),
-				UniformValue(DefaultUniforms::ShadowPCFTapsY, int32_t(light.object->shadow_pcf_taps_y)),
+				UniformValue(Uniforms::LightPosition, light.position),
+				UniformValue(Uniforms::LightColor, light.color),
+				UniformValue(Uniforms::ShadowWorldToClip, light.object->this_frame.vp),
+				UniformValue(Uniforms::ShadowBiasMin, light.object->shadow_bias_min),
+				UniformValue(Uniforms::ShadowBiasMax, light.object->shadow_bias_max),
+				UniformValue(Uniforms::ShadowPCFTapsX, int32_t(light.object->shadow_pcf_taps_x)),
+				UniformValue(Uniforms::ShadowPCFTapsY, int32_t(light.object->shadow_pcf_taps_y)),
 			}, RenderEffectFlags::BlendAdditive);
 		});
 	}
@@ -345,7 +345,7 @@ static void loop(void) {
 	RenderPass("Tonemap & PostFX", [&]() {
 		FragShader* fsh = GetFragShader("data/shaders/tonemap_postfx.frag");
 		RenderEffect(engine, fsh, fb_color_hdr, nullptr, {
-			UniformValue(DefaultUniforms::TonemapExposure, engine.tonemapper.exposure),
+			UniformValue(Uniforms::TonemapExposure, engine.tonemapper.exposure),
 		});
 	});
 

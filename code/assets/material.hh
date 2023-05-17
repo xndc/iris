@@ -24,7 +24,7 @@ enum class BlendMode : uint8_t {
 };
 
 struct SamplerBinding {
-	DefaultUniforms::Item uniform = DefaultUniforms::all[0];
+	Uniforms::Item uniform = Uniforms::all[0];
 	Texture* texture = nullptr;
 	Sampler* sampler = nullptr;
 };
