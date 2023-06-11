@@ -8,19 +8,19 @@ include(FetchContent)
 FetchContent_Populate(emsdk
 	SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/emsdk"
 	GIT_REPOSITORY https://github.com/emscripten-core/emsdk
-	GIT_TAG 0ab19024f08c6673a713e454ef8bd95e174c807f # 3.1.2 (18 Feb 2023)
+	GIT_TAG 775ba048040f663abbca9ca66e264ee795f64ef3 # 3.1.41 (6 Jun 2023)
 	GIT_SHALLOW YES)
 
 FetchContent_Populate(sdl
 	SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/sdl"
 	GIT_REPOSITORY https://github.com/libsdl-org/SDL
-	GIT_TAG adf31f6ec0be0f9ba562889398f71172c7941023 # release-2.26.3 (7 Feb 2023)
+	GIT_TAG ac13ca9ab691e13e8eebe9684740ddcb0d716203 # release-2.26.5 (5 Apr 2023)
 	GIT_SHALLOW YES)
 
 FetchContent_Populate(glad
 	SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/glad"
 	GIT_REPOSITORY https://github.com/Dav1dde/glad
-	GIT_TAG 3b95bf4f9a7a034374092d625e391ddac43fe66f # v2.0.4 (18 Feb 2023)
+	GIT_TAG d08b1aa01f8fe57498f04d47b5fa8c48725be877 # v2.0.4 (17 Feb 2023)
 	GIT_SHALLOW YES)
 
 FetchContent_Populate(glm
@@ -38,13 +38,13 @@ FetchContent_Populate(stb
 FetchContent_Populate(dear_imgui
 	SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dear_imgui"
 	GIT_REPOSITORY https://github.com/ocornut/imgui
-	GIT_TAG 458a1090314a965dd37b02c918d83077a0142ad5 # v1.89.3 (14 Feb 2023)
+	GIT_TAG 5319d1cffafd5045c4742892c38c9e5cfa23d195 # v1.89.6 (31 May 2023)
 	GIT_SHALLOW YES)
 
 FetchContent_Populate(implot
 	SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/implot"
 	GIT_REPOSITORY https://github.com/epezent/implot
-	GIT_TAG 33c5a965f55f80057f197257d1d1cdb06523e963 # v1.89.3 (16 Feb 2023)
+	GIT_TAG 18758e237e8906a97ddf42de1e75793526f30ce9 # (19 Apr 2023)
 	GIT_SHALLOW YES)
 
 FetchContent_Populate(cmake_checks_cache
@@ -56,5 +56,5 @@ FetchContent_Populate(cmake_checks_cache
 FetchContent_Populate(parson
 	SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/parson"
 	GIT_REPOSITORY https://github.com/kgabis/parson
-	GIT_TAG 3c4ee26dbb3df177a2d7b9d80e154ec435ca8c01 # 1.5.1 (15 Feb 2023)
+	GIT_TAG 60c37844d7a1c97547812cac3423d458c73e60f9 # 1.5.2 (21 May 2023)
 	GIT_SHALLOW YES)
