@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(Lycoris)
+project(Iris)
 
 # Helpers to delete compiler and linker flags. Have to use these when setting options for MSVC.
 # See https://gitlab.kitware.com/cmake/cmake/-/issues/19084 (open as of Nov 2022)

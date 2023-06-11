@@ -44,7 +44,7 @@ SDLMAIN_DECLSPEC int main(int argc, char* argv[]) {
 	engine.initial_t = SDL_GetPerformanceCounter();
 	engine.this_frame.ignore_for_timing = true;
 
-	window = SDL_CreateWindow("Lycoris",
+	window = SDL_CreateWindow("Iris",
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 		engine.display_w, engine.display_h,
 		SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_OPENGL);
