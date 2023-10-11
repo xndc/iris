@@ -183,7 +183,7 @@ static void loop(void) {
 	ImPlot::PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0,0));
 	if (engine.metrics_poll.used != 0 &&
 		ImPlot::BeginPlot("Stats Plot", ImVec2(320, 140), ImPlotFlags_NoMouseText | ImPlotFlags_NoTitle |
-			ImPlotFlags_NoFrame | ImPlotFlags_NoChild | ImPlotFlags_NoInputs))
+			ImPlotFlags_NoFrame | ImPlotFlags_NoInputs))
 	{
 		ImPlot::SetupAxes(NULL, NULL, ImPlotAxisFlags_NoTickLabels, ImPlotAxisFlags_NoTickLabels);
 		double time_min = INFINITY, time_max = -INFINITY, val_max = -INFINITY;
