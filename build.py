@@ -193,21 +193,21 @@ os.makedirs(EXTERNAL_CMAKE_DIR, exist_ok=True)
 try:
 	subprocess.check_call(["cmake", "--build", "."], cwd=EXTERNAL_CMAKE_DIR)
 except:
-	cmd = ["cmake"] + (["-G", "Ninja"] if shutil.which("ninja") else []) + [EXTERNAL_DIR]
 	try:
+		cmd = ["cmake"] + (["-G", "Ninja"] if shutil.which("ninja") else []) + [EXTERNAL_DIR]
 		subprocess.check_call(cmd, cwd=EXTERNAL_CMAKE_DIR)
+		subprocess.check_call(["cmake", "--build", "."], cwd=EXTERNAL_CMAKE_DIR)
 	except:
-		shutil.rmtree(EXTERNAL_CMAKE_DIR, ignore_errors=True)
-		os.makedirs(EXTERNAL_CMAKE_DIR, exist_ok=True)
-		subprocess.check_call(cmd, cwd=EXTERNAL_CMAKE_DIR)
-	subprocess.check_call(["cmake", "--build", "."], cwd=EXTERNAL_CMAKE_DIR)
+		warn("Failed to retrieve external dependencies.")
+		warn("Try deleting any failed dependencies from external/.")
+		exit(1)
 
 # **************************************************************************************************
 # Fetch and configure Emscripten SDK if building for the web platform:
 
 if PLATFORM == "web":
 	# Emscripten releases: https://github.com/emscripten-core/emscripten/blob/main/ChangeLog.md
-	EMSDK_VER = "3.1.28" # from 2022-12-08
+	EMSDK_VER = "3.1.46" # from 2023-09-15
 	info(f"Setting up Emscripten {EMSDK_VER}")
 
 	EMSDK_DIR=path.join(EXTERNAL_DIR, "emsdk")
