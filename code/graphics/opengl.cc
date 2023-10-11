@@ -3,21 +3,23 @@
 #include "base/debug.hh"
 
 #if DEBUG && PLATFORM_DESKTOP
-#define ENABLE_GL_DEBUG_MODE 1
-void GLAPIENTRY GLDebugMessageCallback (GLenum src, GLenum type, GLuint id, GLenum sev, GLsizei len,
-	const char* msg, const void* uparam)
-{
-	switch (type) {
-		case GL_DEBUG_TYPE_ERROR: { LOG_F(INFO, "GL error: %s", msg); break; }
-		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: { LOG_F(INFO, "GL deprecation warning: %s", msg); break; }
-		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: { LOG_F(INFO, "GL UB warning: %s", msg); break; }
-		case GL_DEBUG_TYPE_PORTABILITY: { LOG_F(INFO, "GL portability warning: %s", msg); break; }
-		case GL_DEBUG_TYPE_PERFORMANCE: { LOG_F(INFO, "GL performance warning: %s", msg); break; }
-		case GL_DEBUG_TYPE_PUSH_GROUP: break;
-		case GL_DEBUG_TYPE_POP_GROUP: break;
-		default: { LOG_F(INFO, "GL message: %s", msg); }
+	#define ENABLE_GL_DEBUG_MODE 1
+
+	void GLAPIENTRY GLDebugMessageCallback (GLenum src, GLenum type, GLuint id, GLenum sev, GLsizei len,
+		const char* msg, const void* uparam)
+	{
+		switch (type) {
+			case GL_DEBUG_TYPE_ERROR: { LOG_F(INFO, "GL error: %s", msg); break; }
+			case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: { LOG_F(INFO, "GL deprecation warning: %s", msg); break; }
+			case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: { LOG_F(INFO, "GL UB warning: %s", msg); break; }
+			case GL_DEBUG_TYPE_PORTABILITY: { LOG_F(INFO, "GL portability warning: %s", msg); break; }
+			case GL_DEBUG_TYPE_PERFORMANCE: { LOG_F(INFO, "GL performance warning: %s", msg); break; }
+			// Debug groups are only relevant in RenderDoc, no point in printing messages for them
+			case GL_DEBUG_TYPE_PUSH_GROUP: break;
+			case GL_DEBUG_TYPE_POP_GROUP: break;
+			default: { LOG_F(INFO, "GL message: %s", msg); }
+		}
 	}
-}
 #endif
 
 SDL_GLContext GLCreateContext(SDL_Window* window) {
@@ -50,14 +52,12 @@ void GLMakeContextCurrent(SDL_Window* window, SDL_GLContext context) {
 		if (glDebugMessageCallback) {
 			glDebugMessageCallback(GLDebugMessageCallback, nullptr);
 			glEnable(GL_DEBUG_OUTPUT);
-			// Try to disable GLPushDebugGroup/GLPopDebugGroup messages.
-			glDebugMessageControl(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_PUSH_GROUP, GL_DONT_CARE,
-				0, nullptr, GL_FALSE);
-			glDebugMessageControl(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_POP_GROUP, GL_DONT_CARE,
-				0, nullptr, GL_FALSE);
-			const char message[] = "OpenGL debug messages enabled";
-			glDebugMessageInsert(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_OTHER, 0,
-				GL_DEBUG_SEVERITY_NOTIFICATION, sizeof(message), message);
+			// Debug groups are only relevant in RenderDoc, no point in printing messages for them
+			GLenum DSA = GL_DEBUG_SOURCE_APPLICATION, DSN = GL_DEBUG_SEVERITY_NOTIFICATION;
+			glDebugMessageControl(DSA, GL_DEBUG_TYPE_PUSH_GROUP, GL_DONT_CARE, 0, nullptr, GL_FALSE);
+			glDebugMessageControl(DSA, GL_DEBUG_TYPE_POP_GROUP,  GL_DONT_CARE, 0, nullptr, GL_FALSE);
+			const char msg[] = "OpenGL debug messages enabled";
+			glDebugMessageInsert(DSA, GL_DEBUG_TYPE_OTHER, 0, DSN, sizeof(msg), msg);
 		}
 	#endif
 }

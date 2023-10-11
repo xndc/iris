@@ -172,8 +172,7 @@ GameObject::~GameObject() {
 	}
 }
 
-void GameObject::Recurse(std::function<void(GameObject&)> before, std::function<void(GameObject&)> after)
-{
+void GameObject::Recurse(std::function<void(GameObject&)> before, std::function<void(GameObject&)> after) {
 	if (before) { before(*this); }
 	for (GameObject& child : *this) {
 		child.Recurse(before, after);

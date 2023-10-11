@@ -46,6 +46,7 @@ struct UnixDirectoryIterator {
 	DIR* dfd;
 	struct dirent* dp;
 };
+static_assert(sizeof(UnixDirectoryIterator) <= sizeof(DirectoryIterator::platform_data), "");
 
 DirectoryIterator& DirectoryIterator::begin() {
 	auto& data = *(reinterpret_cast<UnixDirectoryIterator*>(platform_data));

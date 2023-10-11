@@ -6,9 +6,7 @@ struct EditorCamera : InfPerspectiveRevZCamera {
 	// Returns the size of this object. Subclasses must include this exact definition.
 	virtual constexpr size_t Size() const override { return sizeof(*this); }
 
-	EditorCamera() :
-		// znear=0.5f results in reasonably high depth precision even without clip-control support
-		InfPerspectiveRevZCamera{0.5f, 130.0f} {}
+	EditorCamera() : InfPerspectiveRevZCamera{0.1f, 130.0f} {}
 
 	float look_speed_horz = 0.002f;
 	float look_speed_vert = 0.002f;

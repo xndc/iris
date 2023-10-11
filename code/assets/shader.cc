@@ -43,10 +43,13 @@ static bool UpdateShaderDefines(const Engine& engine) {
 		va_list ap;
 		va_start(ap, fmt);
 		if (action == COUNT) {
-			size_required += stbsp_vsnprintf(nullptr, 0, fmt, ap);
+			size_required += stbsp_vsnprintf(nullptr, 0, fmt, ap) + sizeof('\n');
 		} else if (action == WRITE) {
 			char* p = &(ShaderDefineBlock.mut()[bytes_written]);
-			bytes_written += stbsp_vsnprintf(p, size_required - bytes_written, fmt, ap);
+			uint32_t bw = stbsp_vsnprintf(p, size_required + 1 - bytes_written, fmt, ap);
+			LOG_F(INFO, "%s", p);
+			p[bw] = '\n'; p[bw+1] = '\0';
+			bytes_written += bw + 1;
 		}
 		va_end(ap);
 	};
@@ -61,37 +64,37 @@ static bool UpdateShaderDefines(const Engine& engine) {
 	auto defines = [&]() {
 		define([&](){ return engine.tonemapper.type != last.tonemapper.type; }, [&](){
 			switch (engine.tonemapper.type) {
-				case Tonemapper::LINEAR:   write("#define TONEMAP_LINEAR\n");   break;
-				case Tonemapper::REINHARD: write("#define TONEMAP_REINHARD\n"); break;
-				case Tonemapper::HABLE:    write("#define TONEMAP_HABLE\n");    break;
-				case Tonemapper::ACES:     write("#define TONEMAP_ACES\n");     break;
+				case Tonemapper::LINEAR:   write("#define TONEMAP_LINEAR");   break;
+				case Tonemapper::REINHARD: write("#define TONEMAP_REINHARD"); break;
+				case Tonemapper::HABLE:    write("#define TONEMAP_HABLE");    break;
+				case Tonemapper::ACES:     write("#define TONEMAP_ACES");     break;
 			}
 		});
 
 		define([&](){ return engine.debugvis_buffer != last.debugvis_buffer; }, [&](){
 			bool debug_vis_enabled = true;
 			switch (engine.debugvis_buffer) {
-				case DebugVisBuffer::GBUF_COLOR:     write("#define DEBUG_VIS_GBUF_COLOR\n");     break;
-				case DebugVisBuffer::GBUF_NORMAL:    write("#define DEBUG_VIS_GBUF_NORMAL\n");    break;
-				case DebugVisBuffer::GBUF_MATERIAL:  write("#define DEBUG_VIS_GBUF_MATERIAL\n");  break;
-				case DebugVisBuffer::GBUF_VELOCITY:  write("#define DEBUG_VIS_GBUF_VELOCITY\n");  break;
-				case DebugVisBuffer::WORLD_POSITION: write("#define DEBUG_VIS_WORLD_POSITION\n"); break;
-				case DebugVisBuffer::DEPTH_RAW:      write("#define DEBUG_VIS_DEPTH_RAW\n");      break;
-				case DebugVisBuffer::DEPTH_LINEAR:   write("#define DEBUG_VIS_DEPTH_LINEAR\n");   break;
-				case DebugVisBuffer::SHADOWMAP:      write("#define DEBUG_VIS_SHADOWMAP\n");      break;
+				case DebugVisBuffer::GBUF_COLOR:     write("#define DEBUG_VIS_GBUF_COLOR");     break;
+				case DebugVisBuffer::GBUF_NORMAL:    write("#define DEBUG_VIS_GBUF_NORMAL");    break;
+				case DebugVisBuffer::GBUF_MATERIAL:  write("#define DEBUG_VIS_GBUF_MATERIAL");  break;
+				case DebugVisBuffer::GBUF_VELOCITY:  write("#define DEBUG_VIS_GBUF_VELOCITY");  break;
+				case DebugVisBuffer::WORLD_POSITION: write("#define DEBUG_VIS_WORLD_POSITION"); break;
+				case DebugVisBuffer::DEPTH_RAW:      write("#define DEBUG_VIS_DEPTH_RAW");      break;
+				case DebugVisBuffer::DEPTH_LINEAR:   write("#define DEBUG_VIS_DEPTH_LINEAR");   break;
+				case DebugVisBuffer::SHADOWMAP:      write("#define DEBUG_VIS_SHADOWMAP");      break;
 				default: debug_vis_enabled = false;
 			}
-			if (debug_vis_enabled) { write("#define DEBUG_VIS\n"); }
+			if (debug_vis_enabled) { write("#define DEBUG_VIS"); }
 		});
 
 		define([&](){ return false; /* never updated */ }, [&]() {
 			if (glClipControl || glDepthRangedNV) {
 				// If ClipControl is supported and we use it to configure our clip space correctly,
 				// written depth range [0,1] will be read as [0,1] when sampling from RTDepth.
-				write("#define DEPTH_ZERO_TO_ONE\n");
+				write("#define DEPTH_ZERO_TO_ONE");
 			} else {
 				// Otherwise, written depth range [0,1] will be read as [0.5,1].
-				write("#define DEPTH_HALF_TO_ONE\n");
+				write("#define DEPTH_HALF_TO_ONE");
 			}
 		});
 	};
@@ -102,14 +105,11 @@ static bool UpdateShaderDefines(const Engine& engine) {
 
 	// Run through all the defines that would be produced to see how large the block needs to be.
 	action = COUNT; defines();
-	size_required += 1; // null terminator; needed because of how we use sprintf above
-	ShaderDefineBlock = String(size_required - 1);
+	ShaderDefineBlock = String(size_required);
 
 	// Run through all the defines again and write them out to the block.
+	LOG_F(INFO, "Generating new shader define block:");
 	action = WRITE; defines();
-	const_cast<uint32_t&>(ShaderDefineBlock._size) = bytes_written;
-
-	LOG_F(INFO, "Generated new shader define block:\n%s", ShaderDefineBlock.cstr);
 
 	ShaderDefineLastEngineState = engine;
 	return true;

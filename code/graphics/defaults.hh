@@ -84,13 +84,14 @@ namespace Uniforms {
 	static constexpr Item TonemapExposure = {"TonemapExposure"};
 
 	static constexpr Item all[] = {
-		RTAlbedo, RTNormal, RTMaterial, RTVelocity, RTColorHDR, RTDepth,
-		FramebufferSize,
+		Time, FramebufferSize,
+		RTAlbedo, RTNormal, RTMaterial, RTVelocity, RTColorHDR, RTPersistTAA, RTDepth,
 		LocalToWorld, LocalToClip, LastLocalToClip, ClipToWorld,
 		TexAlbedo, TexNormal, TexOcclusion, TexOccRghMet,
-		ConstAlbedo, ConstMetallic, ConstRoughness,
-		ShadowMap,
+		ConstAlbedo, ConstMetallic, ConstRoughness, StippleHardCutoff, StippleSoftCutoff,
+		ShadowMap, ShadowWorldToClip, ShadowBiasMin, ShadowPCFTapsX, ShadowPCFTapsY,
 		CameraPosition,
 		LightPosition, LightColor,
+		TonemapExposure,
 	};
 }

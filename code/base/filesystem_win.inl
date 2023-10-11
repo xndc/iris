@@ -89,6 +89,7 @@ struct Win32DirectoryIterator {
 	HANDLE find_handle;
 	String pattern;
 };
+static_assert(sizeof(Win32DirectoryIterator) <= sizeof(DirectoryIterator::platform_data), "");
 
 DirectoryIterator& DirectoryIterator::begin() {
 	auto& data = *(reinterpret_cast<Win32DirectoryIterator*>(platform_data));
