@@ -29,6 +29,12 @@ layout(location = 0) out vec4 OutColorHDR;
 
 #define PI 3.14159265358979323846
 
+#ifdef DEPTH_ZERO_TO_ONE
+	#define DEPTH_ADJUST(z) z
+#else // DEPTH_HALF_TO_ONE
+	#define DEPTH_ADJUST(z) (2.0 * z - 1.0)
+#endif
+
 // Standard GLSL white noise function. Source usually cited as "On generating random numbers, with
 // help of y= [(a+x)sin(bx)] mod 1", W.J.J. Rey (1998). The paper itself seems to be lost to time.
 // Modified for better stability on some mobile GPUs/drivers by Andy Gryc.
@@ -136,10 +142,7 @@ void main() {
 	float metalness = material.b;
 
 	// Reconstruct world-space position from depth and inverse VP matrix
-	float depth = texelFetch(RTDepth, fragcoord, 0).r;
-	#ifdef DEPTH_HALF_TO_ONE
-		depth = (depth - 0.5) * 2.0;
-	#endif
+	float depth = DEPTH_ADJUST(texelFetch(RTDepth, fragcoord, 0).r);
 	vec4 clip_pos = vec4(FragCoord01 * 2.0 - 1.0, depth, 1.0);
 	vec4 unprojected_pos = ClipToWorld * clip_pos;
 	vec3 world_pos = unprojected_pos.xyz / unprojected_pos.w;
@@ -169,10 +172,7 @@ void main() {
 			// FIXME: This can probably be simplified. It could also do with a toggle.
 			offset.x += WhiteNoise(100.0 * world_pos.xy + mod(Time * 1.0, 100.0)) * 2.0 - 1.0;
 			offset.y += WhiteNoise(100.0 * world_pos.xy + mod(Time * 2.0, 100.0)) * 2.0 - 1.0;
-			float shadow_z = texture(ShadowMap, shadow_texcoord + offset * shadow_texel_size).r;
-			#ifdef DEPTH_HALF_TO_ONE
-				shadow_z = (shadow_z - 0.5) * 2.0;
-			#endif
+			float shadow_z = DEPTH_ADJUST(texture(ShadowMap, shadow_texcoord + offset * shadow_texel_size).r);
 			if (shadow_z > shadow_pos.z + shadow_bias) {
 				shadow += 1.0;
 			}
