@@ -239,14 +239,17 @@ static void loop(void) {
 	ImGui::End();
 	ImGui::PopFont();
 
-	ImGui::Begin("Tonemapper");
-	int* p_tonemapper_type = reinterpret_cast<int*>(&engine.tonemapper.type);
-	ImGui::RadioButton("Linear",   p_tonemapper_type, Tonemapper::LINEAR);
-	ImGui::RadioButton("Reinhard", p_tonemapper_type, Tonemapper::REINHARD);
-	ImGui::RadioButton("Hable",    p_tonemapper_type, Tonemapper::HABLE);
-	ImGui::RadioButton("ACES",     p_tonemapper_type, Tonemapper::ACES);
-	ImGui::SliderFloat("Exposure", &engine.tonemapper.exposure, 0.0f, 30.0f);
-	ImGui::End();
+	// FIXME: Add key binding or some other way to see this menu
+	if (0) {
+		ImGui::Begin("Tonemapper");
+		int* p_tonemapper_type = reinterpret_cast<int*>(&engine.tonemapper.type);
+		ImGui::RadioButton("Linear",   p_tonemapper_type, Tonemapper::LINEAR);
+		ImGui::RadioButton("Reinhard", p_tonemapper_type, Tonemapper::REINHARD);
+		ImGui::RadioButton("Hable",    p_tonemapper_type, Tonemapper::HABLE);
+		ImGui::RadioButton("ACES",     p_tonemapper_type, Tonemapper::ACES);
+		ImGui::SliderFloat("Exposure", &engine.tonemapper.exposure, 0.0f, 30.0f);
+		ImGui::End();
+	}
 
 	scene->RecursiveUpdate(engine);
 	scene->RecursiveUpdateTransforms();
