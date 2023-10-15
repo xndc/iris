@@ -174,25 +174,39 @@ static void loop(void) {
 
 	ProcessShaderUpdates(engine);
 
-	float toolbar_height = 36;
-	ImGui::SetNextWindowPos(ImVec2(0, 0));
-	ImGui::SetNextWindowSize(ImVec2(engine.display_w, toolbar_height));
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
-	ImGui::Begin("Editor Toolbar", NULL, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-		ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings |
-		ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
+	ImGui::BeginMainMenuBar();
+	ImVec2 menu_size = ImGui::GetWindowSize();
 	ImGui::PopStyleVar();
-	float toolbar_width = ImGui::GetWindowSize().x;
-	ImGui::Checkbox("PerfStats", &engine.ui_show_perf_graph);
+
+	if (ImGui::BeginMenu("Windows")) {
+		ImGui::MenuItem("Performance Stats", NULL, &engine.ui_show_perf_graph);
+		ImGui::EndMenu();
+	}
+
+	if (ImGui::BeginMenu("Buffers")) {
+		auto bufferVisMenuItem = [](Engine& engine, const char* name, DebugVisBuffer buffer) {
+			if (ImGui::MenuItem(name, NULL, engine.debugvis_buffer == buffer)) {
+				engine.debugvis_buffer = (engine.debugvis_buffer == buffer) ? DebugVisBuffer::FINAL : buffer;
+			}
+		};
+		bufferVisMenuItem(engine, "GBuffer Diffuse",  DebugVisBuffer::GBUF_COLOR);
+		bufferVisMenuItem(engine, "GBuffer Material", DebugVisBuffer::GBUF_MATERIAL);
+		bufferVisMenuItem(engine, "GBuffer Normal",   DebugVisBuffer::GBUF_NORMAL);
+		bufferVisMenuItem(engine, "GBuffer Velocity", DebugVisBuffer::GBUF_VELOCITY);
+		ImGui::EndMenu();
+	}
+
 	const char* helptext = "Use WASDQE/Shift/Space to move, hold RMB to rotate camera";
 	float helptext_width = ImGui::CalcTextSize(helptext).x;
-	ImGui::SameLine(toolbar_width - helptext_width - 12);
+	ImGui::SameLine(menu_size.x - helptext_width - 18);
 	ImGui::TextUnformatted(helptext);
-	ImGui::End();
+
+	ImGui::EndMainMenuBar();
 
 	if (engine.ui_show_perf_graph) {
 		ImGui::PushFont(font_inter_14);
-		ImGui::SetNextWindowPos(ImVec2(10, toolbar_height + 10));
+		ImGui::SetNextWindowPos(ImVec2(10, menu_size.y + 10));
 		ImGui::SetNextWindowBgAlpha(0.5f);
 		ImGui::Begin("Stats", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration |
 			ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
@@ -243,7 +257,7 @@ static void loop(void) {
 		}
 		ImPlot::PopStyleVar();
 		ImGui::End();
-		ImGui::SetNextWindowPos(ImVec2(10, toolbar_height + 170));
+		ImGui::SetNextWindowPos(ImVec2(10, menu_size.y + 170));
 		ImGui::SetNextWindowBgAlpha(0.5f);
 		if (ImGui::Begin("Draw Stats", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration |
 			ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
