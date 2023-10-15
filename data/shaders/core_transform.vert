@@ -16,6 +16,7 @@ uniform mat4 LocalToClip;
 uniform mat4 LastLocalToClip;
 
 out vec4 ClipPos;
+out vec4 LastClipPos;
 out vec3 WorldPos;
 out vec2 VTexcoord0;
 out vec2 VTexcoord1;
@@ -23,7 +24,8 @@ out mat3 TangentBasisNormal;
 
 void main() {
 	WorldPos = (LocalToWorld * vec4(Position, 1.0)).xyz;
-	ClipPos = LocalToClip * vec4(Position, 1.0);
+	ClipPos     = LocalToClip     * vec4(Position, 1.0);
+	LastClipPos = LastLocalToClip * vec4(Position, 1.0);
 	gl_Position = ClipPos;
 
 	VTexcoord0 = Texcoord0;

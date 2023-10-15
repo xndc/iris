@@ -1,6 +1,8 @@
 #version 300 es
 precision highp float;
 
+in vec4 ClipPos;
+in vec4 LastClipPos;
 in vec2 VTexcoord0;
 in mat3 TangentBasisNormal;
 
@@ -84,4 +86,11 @@ void main() {
 	float roughness = ConstRoughness * texture(TexOccRghMet, VTexcoord0).g;
 	float metalness = ConstMetallic  * texture(TexOccRghMet, VTexcoord0).b;
 	OutMaterial = vec3(0.0, roughness, metalness);
+
+	// Compute velocity in UV space:
+	// https://john-chapman-graphics.blogspot.com/2013/01/per-object-motion-blur.html
+	// GDC 2016, Temporal Reprojection Antialiasing in INSIDE
+	vec2 uv_this = (ClipPos.xy / ClipPos.w) * 0.5 + 0.5;
+	vec2 uv_last = (LastClipPos.xy / LastClipPos.w) * 0.5 + 0.5;
+	OutVelocity = uv_this - uv_last;
 }

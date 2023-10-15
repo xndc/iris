@@ -66,10 +66,10 @@ bool Camera::UpdateInput(Engine& engine) {
 }
 
 void Camera::LateUpdate(Engine& engine) {
-	if (!UpdateInput(engine)) { return; }
-
 	last_input = input;
 	last_frame = this_frame;
+
+	if (!UpdateInput(engine)) { return; }
 
 	if (projection != ORTHOGRAPHIC) {
 		this_frame.hfov_rad = ToRadians(input.hfov_deg);

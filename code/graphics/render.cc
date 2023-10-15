@@ -9,7 +9,7 @@ namespace RenderTargets {
 	// World-space normal vectors encoded with octahedral encoding, see gbuffer.frag
 	RenderTarget Normal     = RenderTarget(ImageFormat::RG8,     &Uniforms::RTNormal);
 	RenderTarget Material   = RenderTarget(ImageFormat::RGB8,    &Uniforms::RTMaterial);
-	RenderTarget Velocity   = RenderTarget(ImageFormat::RG8,     &Uniforms::RTVelocity);
+	RenderTarget Velocity   = RenderTarget(ImageFormat::RG16,    &Uniforms::RTVelocity);
 	RenderTarget ColorHDR   = RenderTarget(ImageFormat::RGB10A2, &Uniforms::RTColorHDR);
 	RenderTarget PersistTAA = RenderTarget(ImageFormat::RGB10A2, &Uniforms::RTPersistTAA);
 	RenderTarget Depth      = RenderTarget(ImageFormat::D32,     &Uniforms::RTDepth);
