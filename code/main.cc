@@ -174,70 +174,88 @@ static void loop(void) {
 
 	ProcessShaderUpdates(engine);
 
-	ImGui::PushFont(font_inter_14);
-	ImGui::SetNextWindowPos(ImVec2(10, 10));
-	ImGui::SetNextWindowBgAlpha(0.5f);
-	ImGui::Begin("Stats", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration |
-		ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
+	float toolbar_height = 36;
+	ImGui::SetNextWindowPos(ImVec2(0, 0));
+	ImGui::SetNextWindowSize(ImVec2(engine.display_w, toolbar_height));
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
+	ImGui::Begin("Editor Toolbar", NULL, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+		ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings |
 		ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
-	ImPlot::PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0,0));
-	if (engine.metrics_poll.used != 0 &&
-		ImPlot::BeginPlot("Stats Plot", ImVec2(320, 140), ImPlotFlags_NoMouseText | ImPlotFlags_NoTitle |
-			ImPlotFlags_NoFrame | ImPlotFlags_NoInputs))
-	{
-		ImPlot::SetupAxes(NULL, NULL, ImPlotAxisFlags_NoTickLabels, ImPlotAxisFlags_NoTickLabels);
-		double time_min = INFINITY, time_max = -INFINITY, val_max = -INFINITY;
-		auto metric_minmax = [](double& time_min, double& time_max, double& val_max, const MetricBuffer& metric) {
-			double tmin = double(metric.min_time()), tmax = double(metric.max_time()), vmax = double(metric.max());
-			if (tmin < time_min) { time_min = tmin; }
-			if (tmax > time_max) { time_max = tmax; }
-			if (vmax > val_max)  { val_max  = vmax; }
-		};
-		metric_minmax(time_min, time_max, val_max, engine.metrics_poll);
-		metric_minmax(time_min, time_max, val_max, engine.metrics_update);
-		metric_minmax(time_min, time_max, val_max, engine.metrics_render);
-		metric_minmax(time_min, time_max, val_max, engine.metrics_defer);
-		metric_minmax(time_min, time_max, val_max, engine.metrics_swap);
-		double min_plot_time = Min(time_min, time_max - float(engine.metrics_poll.frames) * 4.0);
-		ImPlot::SetupAxisLimits(ImAxis_X1, min_plot_time, time_max, ImPlotCond_Always);
-
-		// Default plot Y-axis range suitable for 30FPS frames, with gradual transitions when needed
-		static double max_plot_val = 33.3333;
-		max_plot_val = (19.0 * max_plot_val + Max(val_max, 33.3333)) / 20.0;
-		ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, max_plot_val, ImPlotCond_Always);
-
-		// Plotting from cumulative arrays. Order is important to get the correct overlap.
-		// Have to set colours manually because they're derived from the label by default.
-		auto plot = [](const char* name, const MetricBuffer& region, const MetricBuffer& cumulative, ImVec4 color) {
-			static char label[64];
-			stbsp_snprintf(label, sizeof(label), "%s %.03fms max %.03fms", name, region.avg(), region.max());
-			ImPlot::SetNextFillStyle(color, 1.0f);
-			const float* xs = cumulative.times;
-			const float* ys = cumulative.values;
-			int offset = cumulative.next;
-			ImPlot::PlotShaded<float>(label, xs, ys, cumulative.used, -INFINITY, 0, offset);
-		};
-		plot("poll",   engine.metrics_poll,   engine.metrics_poll_plt,   {0.32f, 0.80f, 0.96f, 1.0f});
-		plot("update", engine.metrics_update, engine.metrics_update_plt, {0.87f, 0.36f, 0.91f, 1.0f});
-		plot("render", engine.metrics_render, engine.metrics_render_plt, {0.65f, 0.96f, 0.38f, 1.0f});
-		plot("defer",  engine.metrics_defer,  engine.metrics_defer_plt,  {0.95f, 0.40f, 0.20f, 1.0f});
-		plot("swap",   engine.metrics_swap,   engine.metrics_swap,       {0.96f, 0.69f, 0.41f, 1.0f});
-		ImPlot::EndPlot();
-	}
-	ImPlot::PopStyleVar();
+	ImGui::PopStyleVar();
+	float toolbar_width = ImGui::GetWindowSize().x;
+	ImGui::Checkbox("PerfStats", &engine.ui_show_perf_graph);
+	const char* helptext = "Use WASDQE/Shift/Space to move, hold RMB to rotate camera";
+	float helptext_width = ImGui::CalcTextSize(helptext).x;
+	ImGui::SameLine(toolbar_width - helptext_width - 12);
+	ImGui::TextUnformatted(helptext);
 	ImGui::End();
-	ImGui::SetNextWindowPos(ImVec2(10, 170));
-	ImGui::SetNextWindowBgAlpha(0.5f);
-	if (ImGui::Begin("Draw Stats", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration |
-		ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
-		ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
-	{
-		ImGui::Text("Draws: %u", engine.last_frame.total_drawcalls);
-		ImGui::SameLine(80);
-		ImGui::Text("Polys: %u", engine.last_frame.total_polys_rendered);
+
+	if (engine.ui_show_perf_graph) {
+		ImGui::PushFont(font_inter_14);
+		ImGui::SetNextWindowPos(ImVec2(10, toolbar_height + 10));
+		ImGui::SetNextWindowBgAlpha(0.5f);
+		ImGui::Begin("Stats", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration |
+			ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
+			ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
+		ImPlot::PushStyleVar(ImPlotStyleVar_PlotPadding, ImVec2(0,0));
+		if (engine.metrics_poll.used != 0 &&
+			ImPlot::BeginPlot("Stats Plot", ImVec2(320, 140), ImPlotFlags_NoMouseText | ImPlotFlags_NoTitle |
+				ImPlotFlags_NoFrame | ImPlotFlags_NoInputs))
+		{
+			ImPlot::SetupAxes(NULL, NULL, ImPlotAxisFlags_NoTickLabels, ImPlotAxisFlags_NoTickLabels);
+			double time_min = INFINITY, time_max = -INFINITY, val_max = -INFINITY;
+			auto metric_minmax = [](double& time_min, double& time_max, double& val_max, const MetricBuffer& metric) {
+				double tmin = double(metric.min_time()), tmax = double(metric.max_time()), vmax = double(metric.max());
+				if (tmin < time_min) { time_min = tmin; }
+				if (tmax > time_max) { time_max = tmax; }
+				if (vmax > val_max)  { val_max  = vmax; }
+			};
+			metric_minmax(time_min, time_max, val_max, engine.metrics_poll);
+			metric_minmax(time_min, time_max, val_max, engine.metrics_update);
+			metric_minmax(time_min, time_max, val_max, engine.metrics_render);
+			metric_minmax(time_min, time_max, val_max, engine.metrics_defer);
+			metric_minmax(time_min, time_max, val_max, engine.metrics_swap);
+			double min_plot_time = Min(time_min, time_max - float(engine.metrics_poll.frames) * 4.0);
+			ImPlot::SetupAxisLimits(ImAxis_X1, min_plot_time, time_max, ImPlotCond_Always);
+
+			// Default plot Y-axis range suitable for 30FPS frames, with gradual transitions when needed
+			static double max_plot_val = 33.3333;
+			max_plot_val = (19.0 * max_plot_val + Max(val_max, 33.3333)) / 20.0;
+			ImPlot::SetupAxisLimits(ImAxis_Y1, 0.0, max_plot_val, ImPlotCond_Always);
+
+			// Plotting from cumulative arrays. Order is important to get the correct overlap.
+			// Have to set colours manually because they're derived from the label by default.
+			auto plot = [](const char* name, const MetricBuffer& region, const MetricBuffer& cumulative, ImVec4 color) {
+				static char label[64];
+				stbsp_snprintf(label, sizeof(label), "%s %.03fms max %.03fms", name, region.avg(), region.max());
+				ImPlot::SetNextFillStyle(color, 1.0f);
+				const float* xs = cumulative.times;
+				const float* ys = cumulative.values;
+				int offset = cumulative.next;
+				ImPlot::PlotShaded<float>(label, xs, ys, cumulative.used, -INFINITY, 0, offset);
+			};
+			plot("poll",   engine.metrics_poll,   engine.metrics_poll_plt,   {0.32f, 0.80f, 0.96f, 1.0f});
+			plot("update", engine.metrics_update, engine.metrics_update_plt, {0.87f, 0.36f, 0.91f, 1.0f});
+			plot("render", engine.metrics_render, engine.metrics_render_plt, {0.65f, 0.96f, 0.38f, 1.0f});
+			plot("defer",  engine.metrics_defer,  engine.metrics_defer_plt,  {0.95f, 0.40f, 0.20f, 1.0f});
+			plot("swap",   engine.metrics_swap,   engine.metrics_swap,       {0.96f, 0.69f, 0.41f, 1.0f});
+			ImPlot::EndPlot();
+		}
+		ImPlot::PopStyleVar();
+		ImGui::End();
+		ImGui::SetNextWindowPos(ImVec2(10, toolbar_height + 170));
+		ImGui::SetNextWindowBgAlpha(0.5f);
+		if (ImGui::Begin("Draw Stats", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration |
+			ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
+			ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav))
+		{
+			ImGui::Text("Draws: %u", engine.last_frame.total_drawcalls);
+			ImGui::SameLine(80);
+			ImGui::Text("Polys: %u", engine.last_frame.total_polys_rendered);
+		}
+		ImGui::End();
+		ImGui::PopFont();
 	}
-	ImGui::End();
-	ImGui::PopFont();
 
 	// FIXME: Add key binding or some other way to see this menu
 	if (0) {
