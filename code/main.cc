@@ -347,8 +347,10 @@ static void loop(void) {
 		case DebugVisBuffer::GBUF_VELOCITY:
 		case DebugVisBuffer::DEPTH_LINEAR:
 		case DebugVisBuffer::DEPTH_RAW: {
-			FragShader* fsh = GetFragShader("data/shaders/debugvis.frag");
-			RenderEffect(engine, fsh, gbuffer, debugvis, {});
+			RenderPass("DebugVis GBuffer Read", [&]() {
+				FragShader* fsh = GetFragShader("data/shaders/debugvis.frag");
+				RenderEffect(engine, fsh, gbuffer, debugvis, {});
+			});
 		} break;
 		default:;
 	}
@@ -411,11 +413,14 @@ static void loop(void) {
 
 	// Blit debugvis framebuffer to main framebuffer if enabled
 	if (engine.debugvis_buffer != DebugVisBuffer::NONE) {
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, debugvis->gl_framebuffer);
-		glReadBuffer(GL_COLOR_ATTACHMENT0);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-		glBlitFramebuffer(0, 0, engine.display_w, engine.display_h, 0, 0, engine.display_w, engine.display_h,
-			GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		RenderPass("DebugVis Blit", [&]() {
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, debugvis->gl_framebuffer);
+			glReadBuffer(GL_COLOR_ATTACHMENT0);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			glBlitFramebuffer(0, 0, engine.display_w, engine.display_h,
+				0, 0, engine.display_w, engine.display_h,
+				GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		});
 	}
 
 	RenderPass("Editor UI", [&]() {
