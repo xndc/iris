@@ -99,24 +99,24 @@ struct Engine {
 
 	DebugVisBuffer debugvis_buffer = DebugVisBuffer::FINAL;
 
-	// Bitfield section:
-
-	bool pause_on_focus_loss : 1 = true;
-	bool clear_colour_buffers : 1 = true;
+	bool pause_on_focus_loss = true;
+	bool clear_colour_buffers = true;
 
 	// Supposed to fix "Peter Panning" by rendering only backfaces into the shadow map.
 	// Doesn't seem to make a difference; we don't get any Peter Panning anyway.
-	bool shadow_render_only_backfaces : 1 = true;
+	bool shadow_render_only_backfaces = true;
 	// Add random offsets when sampling. Results in noisy shadows that we soften through TAA.
-	bool shadow_noisy_sampling : 1 = true;
+	bool shadow_noisy_sampling = true;
 
 	// Enable the Temporal Anti-Aliasing filter. Smooths the image at the cost of some blur.
-	bool taa_enabled : 1 = true;
+	bool taa_enabled = true;
 	// If enabled, use a Halton pattern for the jitter. If disabled, use a simple 2-sample pattern.
-	bool taa_halton_jitter : 1 = true;
+	bool taa_halton_jitter = true;
 
-	bool debugvis_light_gizmos : 1 = false;
-	bool debugvis_light_volumes : 1 = false;
-	bool debugvis_mesh_aabbs : 1 = false;
-	bool debugvis_white_world : 1 = false;
+	bool ui_show_perf_graph = true;
+
+	bool debugvis_light_gizmos = false;
+	bool debugvis_light_volumes = false;
+	bool debugvis_mesh_aabbs = false;
+	bool debugvis_white_world = false;
 };
