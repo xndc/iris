@@ -341,44 +341,17 @@ static void loop(void) {
 
 	// Read GBuffer data into debugvis buffer if enabled
 	switch (engine.debugvis_buffer) {
-		case DebugVisBuffer::GBUF_COLOR: {
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, gbuffer->gl_framebuffer);
-			glReadBuffer(gbuffer->drawbufferForAttachment(&RenderTargets::Albedo));
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, debugvis->gl_framebuffer);
-			glBlitFramebuffer(0, 0, engine.display_w, engine.display_h,
-				0, 0, engine.display_w, engine.display_h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-		} break;
-		case DebugVisBuffer::GBUF_MATERIAL: {
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, gbuffer->gl_framebuffer);
-			glReadBuffer(gbuffer->drawbufferForAttachment(&RenderTargets::Material));
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, debugvis->gl_framebuffer);
-			glBlitFramebuffer(0, 0, engine.display_w, engine.display_h,
-				0, 0, engine.display_w, engine.display_h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-		} break;
-		case DebugVisBuffer::GBUF_NORMAL: {
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, gbuffer->gl_framebuffer);
-			glReadBuffer(gbuffer->drawbufferForAttachment(&RenderTargets::Normal));
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, debugvis->gl_framebuffer);
-			glBlitFramebuffer(0, 0, engine.display_w, engine.display_h,
-				0, 0, engine.display_w, engine.display_h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-		} break;
-		case DebugVisBuffer::GBUF_VELOCITY: {
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, gbuffer->gl_framebuffer);
-			glReadBuffer(gbuffer->drawbufferForAttachment(&RenderTargets::Velocity));
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, debugvis->gl_framebuffer);
-			glBlitFramebuffer(0, 0, engine.display_w, engine.display_h,
-				0, 0, engine.display_w, engine.display_h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-		} break;
+		case DebugVisBuffer::GBUF_COLOR:
+		case DebugVisBuffer::GBUF_MATERIAL:
+		case DebugVisBuffer::GBUF_NORMAL:
+		case DebugVisBuffer::GBUF_VELOCITY:
 		case DebugVisBuffer::DEPTH_LINEAR:
 		case DebugVisBuffer::DEPTH_RAW: {
-			// Selection between LINEAR and RAW modes is done in shader
-			FragShader* fsh = GetFragShader("data/shaders/debugvis_depth.frag");
+			FragShader* fsh = GetFragShader("data/shaders/debugvis.frag");
 			RenderEffect(engine, fsh, gbuffer, debugvis, {});
 		} break;
 		default:;
 	}
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 	for (RenderableDirectionalLight& light : render_list.directional_lights) {
 		UpdateShadowRenderTargets(*light.object);
@@ -441,8 +414,8 @@ static void loop(void) {
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, debugvis->gl_framebuffer);
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-		glBlitFramebuffer(0, 0, engine.display_w, engine.display_h,
-			0, 0, engine.display_w, engine.display_h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		glBlitFramebuffer(0, 0, engine.display_w, engine.display_h, 0, 0, engine.display_w, engine.display_h,
+			GL_COLOR_BUFFER_BIT, GL_NEAREST);
 	}
 
 	RenderPass("Editor UI", [&]() {
