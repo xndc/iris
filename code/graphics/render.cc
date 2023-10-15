@@ -14,6 +14,7 @@ namespace RenderTargets {
 	RenderTarget PersistTAA = RenderTarget(ImageFormat::RGB10A2, &Uniforms::RTPersistTAA);
 	RenderTarget Depth      = RenderTarget(ImageFormat::D32,     &Uniforms::RTDepth);
 	RenderTarget ShadowMap  = RenderTarget(ImageFormat::D32,     &Uniforms::ShadowMap);
+	RenderTarget DebugVis   = RenderTarget(ImageFormat::RGB8,    &Uniforms::RTDebugVis);
 };
 
 struct FramebufferKey {
@@ -35,10 +36,15 @@ static void ClearFramebufferCache() {
 	}
 }
 
-static void RebuildRenderTarget(RenderTarget& target, uint32_t w, uint32_t h) {
+static void ClearRenderTarget(RenderTarget& target) {
 	if (target.gl_texture != 0) {
 		glDeleteTextures(1, &target.gl_texture);
+		target.gl_texture = 0;
 	}
+}
+
+static void RebuildRenderTarget(RenderTarget& target, uint32_t w, uint32_t h) {
+	ClearRenderTarget(target);
 	glGenTextures(1, &target.gl_texture);
 	glBindTexture(GL_TEXTURE_2D, target.gl_texture);
 	glTexStorage2D(GL_TEXTURE_2D, 1, target.format.gl_internalformat(), w, h);
@@ -48,9 +54,12 @@ static void RebuildRenderTarget(RenderTarget& target, uint32_t w, uint32_t h) {
 
 void UpdateRenderTargets(const Engine& engine) {
 	static uint32_t last_w = 0, last_h = 0;
-	if (engine.display_w != last_w || engine.display_h != last_h) {
+	static bool last_debugvis_enabled = false;
+	bool debugvis_enabled = (engine.debugvis_buffer != DebugVisBuffer::NONE);
+	if (engine.display_w != last_w || engine.display_h != last_h || last_debugvis_enabled != debugvis_enabled) {
 		last_w = engine.display_w;
 		last_h = engine.display_h;
+		last_debugvis_enabled = debugvis_enabled;
 		RebuildRenderTarget(RenderTargets::Albedo,     engine.display_w, engine.display_h);
 		RebuildRenderTarget(RenderTargets::Normal,     engine.display_w, engine.display_h);
 		RebuildRenderTarget(RenderTargets::Material,   engine.display_w, engine.display_h);
@@ -58,6 +67,11 @@ void UpdateRenderTargets(const Engine& engine) {
 		RebuildRenderTarget(RenderTargets::ColorHDR,   engine.display_w, engine.display_h);
 		RebuildRenderTarget(RenderTargets::PersistTAA, engine.display_w, engine.display_h);
 		RebuildRenderTarget(RenderTargets::Depth,      engine.display_w, engine.display_h);
+		if (debugvis_enabled) {
+			RebuildRenderTarget(RenderTargets::DebugVis, engine.display_w, engine.display_h);
+		} else {
+			ClearRenderTarget(RenderTargets::DebugVis);
+		}
 		ClearFramebufferCache();
 	}
 }
@@ -89,6 +103,7 @@ Framebuffer* GetFramebuffer(std::initializer_list<RenderTarget*> attachments) {
 			if (ap == GL_COLOR_ATTACHMENT0) {
 				ap += next_color_attachment;
 				framebuffer.gl_drawbuffers[next_color_attachment] = ap;
+				framebuffer.gl_drawbuffer_attachment_map[next_color_attachment] = attachment;
 				next_color_attachment++;
 			}
 			glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, ap, GL_TEXTURE_2D, attachment->gl_texture, 0);
@@ -97,6 +112,15 @@ Framebuffer* GetFramebuffer(std::initializer_list<RenderTarget*> attachments) {
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	}
 	return &framebuffer;
+}
+
+GLuint Framebuffer::drawbufferForAttachment(const RenderTarget* rt) {
+	for (uint32_t i = 0; i < this->gl_drawbuffer_count; i++) {
+		if (rt == this->gl_drawbuffer_attachment_map[i]) {
+			return this->gl_drawbuffers[i];
+		}
+	}
+	LOG_F(ERROR, "Framebuffer %p: drawbuffer not found for rendertarget %s", this, rt->uniform->name);
 }
 
 void BindFramebuffer(Framebuffer* framebuffer) {
@@ -140,6 +164,7 @@ void Render(Engine& engine, RenderList& rlist, Camera* camera, Program* program,
 
 	program->set({Uniforms::CameraPosition, camera->world_position});
 	program->set({Uniforms::ClipToWorld, camera->this_frame.inv_vp});
+	program->set({Uniforms::ClipToView, camera->this_frame.inv_proj});
 
 	// Find per-view render list for this camera
 	auto viewlist_iter = std::find_if(rlist.views.cbegin(), rlist.views.cend(),
@@ -295,6 +320,7 @@ void RenderEffect(Engine& engine, FragShader* fsh, Framebuffer* input, Framebuff
 	// TODO: Will we ever want to use RenderEffect for something other than the main camera?
 	program->set({Uniforms::CameraPosition, engine.cam_main->world_position});
 	program->set({Uniforms::ClipToWorld, engine.cam_main->this_frame.inv_vp});
+	program->set({Uniforms::ClipToView, engine.cam_main->this_frame.inv_proj});
 
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);

@@ -29,6 +29,7 @@ namespace RenderTargets {
 	extern RenderTarget PersistTAA;
 	extern RenderTarget Depth;
 	extern RenderTarget ShadowMap;
+	extern RenderTarget DebugVis;
 };
 
 struct Framebuffer {
@@ -37,6 +38,8 @@ struct Framebuffer {
 	GLuint gl_framebuffer = 0;
 	uint32_t gl_drawbuffer_count = 0;
 	GLuint gl_drawbuffers [MaxAttachments] = {};
+	RenderTarget* gl_drawbuffer_attachment_map [MaxAttachments] = {};
+	GLuint drawbufferForAttachment(const RenderTarget* rt);
 };
 
 void UpdateRenderTargets(const Engine& engine);

@@ -23,7 +23,7 @@ struct Tonemapper {
 };
 
 enum class DebugVisBuffer {
-	FINAL,
+	NONE,
 	GBUF_COLOR,
 	GBUF_NORMAL,
 	GBUF_MATERIAL,
@@ -97,7 +97,7 @@ struct Engine {
 	// FIXME: The current implementation is quite bad, so it's best to keep this disabled.
 	float sharpen_strength = 0.0f;
 
-	DebugVisBuffer debugvis_buffer = DebugVisBuffer::FINAL;
+	DebugVisBuffer debugvis_buffer = DebugVisBuffer::NONE;
 
 	bool pause_on_focus_loss = true;
 	bool clear_colour_buffers = true;

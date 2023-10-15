@@ -45,12 +45,14 @@ namespace Uniforms {
 	static constexpr Item RTColorHDR = {"RTColorHDR"};
 	static constexpr Item RTPersistTAA = {"RTPersistTAA"};
 	static constexpr Item RTDepth = {"RTDepth"};
+	static constexpr Item RTDebugVis = {"RTDebugVis"};
 
 	// Transformation matrices
 	static constexpr Item LocalToWorld = {"LocalToWorld"};
 	static constexpr Item LocalToClip = {"LocalToClip"};
 	static constexpr Item LastLocalToClip = {"LastLocalToClip"};
 	static constexpr Item ClipToWorld = {"ClipToWorld"};
+	static constexpr Item ClipToView = {"ClipToView"};
 
 	// Material sampler bindings
 	static constexpr Item TexAlbedo    = {"TexAlbedo"};
@@ -85,8 +87,8 @@ namespace Uniforms {
 
 	static constexpr Item all[] = {
 		Time, FramebufferSize,
-		RTAlbedo, RTNormal, RTMaterial, RTVelocity, RTColorHDR, RTPersistTAA, RTDepth,
-		LocalToWorld, LocalToClip, LastLocalToClip, ClipToWorld,
+		RTAlbedo, RTNormal, RTMaterial, RTVelocity, RTColorHDR, RTPersistTAA, RTDepth, RTDebugVis,
+		LocalToWorld, LocalToClip, LastLocalToClip, ClipToWorld, ClipToView,
 		TexAlbedo, TexNormal, TexOcclusion, TexOccRghMet,
 		ConstAlbedo, ConstMetallic, ConstRoughness, StippleHardCutoff, StippleSoftCutoff,
 		ShadowMap, ShadowWorldToClip, ShadowBiasMin, ShadowPCFTapsX, ShadowPCFTapsY,

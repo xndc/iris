@@ -187,13 +187,29 @@ static void loop(void) {
 	if (ImGui::BeginMenu("Buffers")) {
 		auto bufferVisMenuItem = [](Engine& engine, const char* name, DebugVisBuffer buffer) {
 			if (ImGui::MenuItem(name, NULL, engine.debugvis_buffer == buffer)) {
-				engine.debugvis_buffer = (engine.debugvis_buffer == buffer) ? DebugVisBuffer::FINAL : buffer;
+				engine.debugvis_buffer = (engine.debugvis_buffer == buffer) ? DebugVisBuffer::NONE : buffer;
 			}
 		};
 		bufferVisMenuItem(engine, "GBuffer Diffuse",  DebugVisBuffer::GBUF_COLOR);
 		bufferVisMenuItem(engine, "GBuffer Material", DebugVisBuffer::GBUF_MATERIAL);
 		bufferVisMenuItem(engine, "GBuffer Normal",   DebugVisBuffer::GBUF_NORMAL);
 		bufferVisMenuItem(engine, "GBuffer Velocity", DebugVisBuffer::GBUF_VELOCITY);
+		bufferVisMenuItem(engine, "Depth (Linear)", DebugVisBuffer::DEPTH_LINEAR);
+		bufferVisMenuItem(engine, "Depth (Raw)", DebugVisBuffer::DEPTH_RAW);
+		ImGui::EndMenu();
+	}
+
+	if (ImGui::BeginMenu("Tonemapper")) {
+		auto tonemapperMenuItem = [](Engine& engine, const char* name, Tonemapper::Type tonemapper) {
+			if (ImGui::MenuItem(name, NULL, engine.tonemapper.type == tonemapper)) {
+				engine.tonemapper.type = tonemapper;
+			}
+		};
+		tonemapperMenuItem(engine, "Linear",   Tonemapper::LINEAR);
+		tonemapperMenuItem(engine, "Reinhard", Tonemapper::REINHARD);
+		tonemapperMenuItem(engine, "Hable",    Tonemapper::HABLE);
+		tonemapperMenuItem(engine, "ACES",     Tonemapper::ACES);
+		ImGui::SliderFloat("Exposure", &engine.tonemapper.exposure, 0.0f, 30.0f);
 		ImGui::EndMenu();
 	}
 
@@ -271,18 +287,6 @@ static void loop(void) {
 		ImGui::PopFont();
 	}
 
-	// FIXME: Add key binding or some other way to see this menu
-	if (0) {
-		ImGui::Begin("Tonemapper");
-		int* p_tonemapper_type = reinterpret_cast<int*>(&engine.tonemapper.type);
-		ImGui::RadioButton("Linear",   p_tonemapper_type, Tonemapper::LINEAR);
-		ImGui::RadioButton("Reinhard", p_tonemapper_type, Tonemapper::REINHARD);
-		ImGui::RadioButton("Hable",    p_tonemapper_type, Tonemapper::HABLE);
-		ImGui::RadioButton("ACES",     p_tonemapper_type, Tonemapper::ACES);
-		ImGui::SliderFloat("Exposure", &engine.tonemapper.exposure, 0.0f, 30.0f);
-		ImGui::End();
-	}
-
 	scene->RecursiveUpdate(engine);
 	scene->RecursiveUpdateTransforms();
 	scene->RecursiveLateUpdate(engine);
@@ -327,6 +331,54 @@ static void loop(void) {
 		Program* program = GetProgram(vsh, fsh);
 		Render(engine, render_list, engine.cam_main, program, nullptr, gbuffer, {});
 	});
+
+	Framebuffer* debugvis = NULL;
+	if (engine.debugvis_buffer != DebugVisBuffer::NONE) {
+		// Initial UpdateRenderTargets pass is before we enable/disable debugvis, need to recheck
+		UpdateRenderTargets(engine);
+		debugvis = GetFramebuffer({&RenderTargets::DebugVis});
+	}
+
+	// Read GBuffer data into debugvis buffer if enabled
+	switch (engine.debugvis_buffer) {
+		case DebugVisBuffer::GBUF_COLOR: {
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, gbuffer->gl_framebuffer);
+			glReadBuffer(gbuffer->drawbufferForAttachment(&RenderTargets::Albedo));
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, debugvis->gl_framebuffer);
+			glBlitFramebuffer(0, 0, engine.display_w, engine.display_h,
+				0, 0, engine.display_w, engine.display_h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		} break;
+		case DebugVisBuffer::GBUF_MATERIAL: {
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, gbuffer->gl_framebuffer);
+			glReadBuffer(gbuffer->drawbufferForAttachment(&RenderTargets::Material));
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, debugvis->gl_framebuffer);
+			glBlitFramebuffer(0, 0, engine.display_w, engine.display_h,
+				0, 0, engine.display_w, engine.display_h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		} break;
+		case DebugVisBuffer::GBUF_NORMAL: {
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, gbuffer->gl_framebuffer);
+			glReadBuffer(gbuffer->drawbufferForAttachment(&RenderTargets::Normal));
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, debugvis->gl_framebuffer);
+			glBlitFramebuffer(0, 0, engine.display_w, engine.display_h,
+				0, 0, engine.display_w, engine.display_h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		} break;
+		case DebugVisBuffer::GBUF_VELOCITY: {
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, gbuffer->gl_framebuffer);
+			glReadBuffer(gbuffer->drawbufferForAttachment(&RenderTargets::Velocity));
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, debugvis->gl_framebuffer);
+			glBlitFramebuffer(0, 0, engine.display_w, engine.display_h,
+				0, 0, engine.display_w, engine.display_h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		} break;
+		case DebugVisBuffer::DEPTH_LINEAR:
+		case DebugVisBuffer::DEPTH_RAW: {
+			// Selection between LINEAR and RAW modes is done in shader
+			FragShader* fsh = GetFragShader("data/shaders/debugvis_depth.frag");
+			RenderEffect(engine, fsh, gbuffer, debugvis, {});
+		} break;
+		default:;
+	}
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 	for (RenderableDirectionalLight& light : render_list.directional_lights) {
 		UpdateShadowRenderTargets(*light.object);
@@ -383,6 +435,15 @@ static void loop(void) {
 			UniformValue(Uniforms::TonemapExposure, engine.tonemapper.exposure),
 		});
 	});
+
+	// Blit debugvis framebuffer to main framebuffer if enabled
+	if (engine.debugvis_buffer != DebugVisBuffer::NONE) {
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, debugvis->gl_framebuffer);
+		glReadBuffer(GL_COLOR_ATTACHMENT0);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glBlitFramebuffer(0, 0, engine.display_w, engine.display_h,
+			0, 0, engine.display_w, engine.display_h, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	}
 
 	RenderPass("Editor UI", [&]() {
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
