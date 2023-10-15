@@ -73,6 +73,7 @@ arg_a = argp.add_argument_group("after-build actions").add_mutually_exclusive_gr
 arg_a.add_argument("-r", "--run", action="store_true", help="Launch the game after building it")
 arg_a.add_argument("-i", "--ide", action="store_true", help="Generate and open an IDE project")
 arg_a.add_argument("--renderdoc", action="store_true", help="Debug the game using RenderDoc")
+arg_a.add_argument("--package", action="store_true", help="Package game for distribution (web only for now)")
 
 args, EXTRA_RUN_ARGS = argp.parse_known_args()
 
@@ -100,10 +101,10 @@ if args.ios: PLATFORM = "ios"
 if args.android: PLATFORM = "android"
 CMAKE_TOOLCHAIN = None
 
-if args.release and PLATFORM == "web":
+if (args.release or args.package) and PLATFORM == "web":
 	# Emscripten limits WASM-level (binaryen) optimisations in RelWithDebInfo mode
 	BUILD_CONFIGURATION = "Release"
-elif args.release:
+elif (args.release or args.package):
 	BUILD_CONFIGURATION = "RelWithDebInfo"
 else:
 	BUILD_CONFIGURATION = "Debug"
@@ -117,6 +118,7 @@ if args.android:
 LAUNCH_GAME = args.run
 LAUNCH_IDE = args.ide
 LAUNCH_RENDERDOC = args.renderdoc
+PACKAGE_GAME = args.package
 
 # **************************************************************************************************
 # Import Visual Studio environment using VsDevCmd if on Windows:
@@ -471,3 +473,16 @@ if LAUNCH_RENDERDOC:
 	cmd = [renderdoc, capfile]
 	info("Launching RenderDoc: {}", subprocess_array_to_string(cmd))
 	subprocess.Popen(cmd)
+
+# **************************************************************************************************
+# Package game for distribution if script is run with --package:
+
+if PLATFORM == "web" and PACKAGE_GAME:
+	outdir = "docs" # expected by GitHub Pages
+	os.makedirs(outdir, exist_ok=True)
+	info(f"Packaging game: {outdir}/{PROJECT_NAME}.html")
+	shutil.copyfile(path.join(BUILD_DIR, f"{PROJECT_NAME}.html"), path.join(outdir, "index.html"))
+	shutil.copyfile(path.join(BUILD_DIR, f"{PROJECT_NAME}.js"),   path.join(outdir, f"{PROJECT_NAME}.js"))
+	shutil.copyfile(path.join(BUILD_DIR, f"{PROJECT_NAME}.wasm"), path.join(outdir, f"{PROJECT_NAME}.wasm"))
+	shutil.copyfile(path.join(BUILD_DIR, f"{PROJECT_NAME}.data"), path.join(outdir, f"{PROJECT_NAME}.data"))
+	open(path.join(outdir, ".nojekyll"), "w").close() # expected by GitHub Pages
