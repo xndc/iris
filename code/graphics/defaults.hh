@@ -82,6 +82,11 @@ namespace Uniforms {
 	static constexpr Item LightPosition = {"LightPosition"};
 	static constexpr Item LightColor = {"LightColor"};
 
+	// TAA parameters
+	static constexpr Item Jitter = {"Jitter"};
+	static constexpr Item LastJitter = {"LastJitter"};
+	static constexpr Item TAAFeedbackFactor = {"TAAFeedbackFactor"};
+
 	// Tonemap & PostFX parameters
 	static constexpr Item TonemapExposure = {"TonemapExposure"};
 
@@ -94,6 +99,7 @@ namespace Uniforms {
 		ShadowMap, ShadowWorldToClip, ShadowBiasMin, ShadowPCFTapsX, ShadowPCFTapsY,
 		CameraPosition,
 		LightPosition, LightColor,
+		Jitter, LastJitter, TAAFeedbackFactor,
 		TonemapExposure,
 	};
 }
