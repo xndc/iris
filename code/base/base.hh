@@ -55,12 +55,21 @@
 #endif
 
 // Checks if the compiler supports a C++ attribute [[x]] with the given name.
+// Support tables: https://en.cppreference.com/w/cpp/feature_test
 #if defined(__has_cpp_attribute)
 	#define COMPILER_HAS_CPP_ATTRIB(x) __has_cpp_attribute(x)
 #else
 	#define COMPILER_HAS_CPP_ATTRIB(x) (defined(COMPILER_HAS_CPP_ATTRIB_ ## x) && COMPILER_HAS_CPP_ATTRIB_ ## x)
-	#define COMPILER_HAS_CPP_ATTRIB_noreturn COMPILER_HAS_CPP(200809L)
-	#define COMPILER_HAS_CPP_ATTRIB_nodiscard COMPILER_HAS_CPP(201603L)
+	#define COMPILER_HAS_CPP_ATTRIB_assume             COMPILER_HAS_CPP(202207L)
+	#define COMPILER_HAS_CPP_ATTRIB_carries_dependency COMPILER_HAS_CPP(200809L)
+	#define COMPILER_HAS_CPP_ATTRIB_deprecated         COMPILER_HAS_CPP(201309L)
+	#define COMPILER_HAS_CPP_ATTRIB_fallthrough        COMPILER_HAS_CPP(201603L)
+	#define COMPILER_HAS_CPP_ATTRIB_likely             COMPILER_HAS_CPP(201803L)
+	#define COMPILER_HAS_CPP_ATTRIB_maybe_unused       COMPILER_HAS_CPP(201603L)
+	#define COMPILER_HAS_CPP_ATTRIB_no_unique_address  COMPILER_HAS_CPP(201803L)
+	#define COMPILER_HAS_CPP_ATTRIB_noreturn           COMPILER_HAS_CPP(200809L)
+	#define COMPILER_HAS_CPP_ATTRIB_nodiscard          COMPILER_HAS_CPP(201603L)
+	#define COMPILER_HAS_CPP_ATTRIB_unlikely           COMPILER_HAS_CPP(201803L)
 #endif
 
 // Checks if the compiler supports an __attribute__(x) with the given name.
